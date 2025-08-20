@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookVerse - Global Book Search Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        :root {
+            --bg-primary: #f9fafb;
+            --bg-secondary: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .bg-white {
+            background-color: var(--bg-secondary) !important;
+        }
+        
+        .text-gray-900 {
+            color: var(--text-primary) !important;
+        }
+        
+        .text-gray-600 {
+            color: var(--text-secondary) !important;
+        }
+        
+        .border-gray-200 {
+            border-color: var(--border-color) !important;
+        }
+        
+        .search-focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .catalog-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        .library-marker {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .library-marker:hover circle {
+            r: 12;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        .availability-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Dark mode specific overrides */
+        .dark .shadow-sm {
+            box-shadow: var(--shadow);
+        }
+        
+        .dark input {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .dark select {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #374151 !important;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #4b5563 !important;
+        }
+        
+        .dark .text-gray-700 {
+            color: #d1d5db !important;
+        }
+        
+        .dark .text-gray-500 {
+            color: #9ca3af !important;
+        }
+        
+        .dark .hover\:bg-gray-100:hover {
+            background-color: #374151 !important;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Leaflet marker styles */
+        .custom-marker-digital {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .custom-marker-book {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .marker-ia {
+            background: #6366f1;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .marker-ol {
+            background: #f59e42;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+
+        .marker-book {
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            text-align: center;
+            line-height: 16px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">BV</span>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-900">BookVerse</h1>
+                </div>
+                
+                <nav class="hidden md:flex space-x-6">
+                    <button onclick="showSearchInterface()" class="text-gray-600 hover:text-blue-600 font-medium">Search</button>
+                    <button onclick="showAuthorsListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Authors</button>
+                    <button onclick="showTitlesListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Titles</button>
+                    <button onclick="showDigitalPage()" class="text-gray-600 hover:text-blue-600 font-medium">Digital</button>
+                    <button onclick="showPublicDomainSection()" class="text-gray-600 hover:text-blue-600 font-medium">Public Domain</button>
+                    <button onclick="showLibrariesListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Libraries</button>
+                </nav>
+                
+                <button onclick="toggleTheme()" id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Toggle dark/light theme" aria-label="Toggle theme">
+                    <svg id="sunIcon" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5 text-gray-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Breadcrumb Navigation -->
+        <div id="breadcrumbContainer" class="hidden mb-6 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+        </div>
+
+        <!-- Search Interface (Default View) -->
+        <div id="searchInterface">
+            <!-- Hero Search -->
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Find Books Worldwide</h2>
+                <p class="text-xl text-gray-600 mb-8">Search across global libraries with advanced filters</p>
+                
+                <!-- Main Search Bar -->
+                <div class="max-w-4xl mx-auto">
+                    <div class="relative mb-4">
+                        <input 
+                            type="text" 
+                            id="mainSearch" 
+                            placeholder="Search by title, author, ISBN, or keyword..."
+                            class="w-full px-6 py-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 search-focus"
+                            onkeyup="performSearch(this.value)"
+                            onkeypress="if(event.key==='Enter') showSearchResults()"
+                        >
+                        <button onclick="showSearchResults()" class="absolute right-2 top-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            Search
+                        </button>
+                    </div>
+                    
+                    <!-- Advanced Filters -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">🔍 Advanced Filters</h3>
+                            <button onclick="toggleFilters()" id="filterToggle" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                Hide Filters
+                            </button>
+                        </div>
+                        
+                        <div id="filterPanel" class="grid md:grid-cols-4 gap-4">
+                            <!-- Availability Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="availabilityFilter">📚 Availability</label>
+                                <select id="availabilityFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by availability">
+                                    <option value="all">All Types</option>
+                                    <option value="digital">Digital Only</option>
+                                    <option value="physical">Physical Only</option>
+                                    <option value="both">Both Available</option>
+                                    <option value="available-now">Available Now</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Language Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="languageFilter">🌍 Language</label>
+                                <select id="languageFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by language">
+                                    <option value="all">All Languages</option>
+                                    <option value="English">English</option>
+                                    <option value="French">Français</option>
+                                    <option value="Spanish">Español</option>
+                                    <option value="German">Deutsch</option>
+                                    <option value="Japanese">日本語</option>
+                                    <option value="Chinese">中文</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Genre Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="genreFilter">📖 Genre</label>
+                                <select id="genreFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by genre">
+                                    <option value="all">All Genres</option>
+                                    <option value="Fiction">Fiction</option>
+                                    <option value="Non-Fiction">Non-Fiction</option>
+                                    <option value="Biography">Biography</option>
+                                    <option value="Self-Help">Self-Help</option>
+                                    <option value="Science">Science</option>
+                                    <option value="History">History</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Year Range Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="yearFilter">📅 Published</label>
+                                <select id="yearFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by publication year">
+                                    <option value="all">Any Year</option>
+                                    <option value="2020-2024">2020-2024</option>
+                                    <option value="2015-2019">2015-2019</option>
+                                    <option value="2010-2014">2010-2014</option>
+                                    <option value="2000-2009">2000-2009</option>
+                                    <option value="before-2000">Before 2000</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter Summary & Clear -->
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                            <div id="filterSummary" class="text-sm text-gray-600">
+                                No filters applied
+                            </div>
+                            <button onclick="clearAllFilters()" class="text-red-600 hover:text-red-700 text-sm font-medium">
+                                Clear All Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Search Tags -->
+                <div class="flex justify-center flex-wrap gap-3 mt-6">
+                    <button onclick="quickSearch('fiction')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Fiction</button>
+                    <button onclick="quickSearch('non-fiction')" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">Non-Fiction</button>
+                    <button onclick="quickSearch('biography')" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">Biography</button>
+                    <button onclick="quickSearch('bestseller')" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">Bestsellers</button>
+                    <button onclick="quickSearch('award')" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition-colors">Award Winners</button>
+                    <button onclick="quickSearch('public domain')" class="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors">Public Domain</button>
+                </div>
+            </div>
+
+            <!-- Enhanced Map & API Selector -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">📍 Global Library Access Map</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Leaflet Map Container -->
+                    <div class="flex-1 min-w-[300px]">
+                        <div id="libraryMap" class="w-full h-96 rounded-lg border border-gray-200 relative">
+                            <!-- Map will be initialized here -->
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600 text-center">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                                Active Libraries
+                            </span>
+                            <span class="mx-4 inline-flex items-center gap-2">
+                                <span class="w-3 h-3 bg-gray-400 rounded-full"></span>
+                                Digital Only
+                            </span>
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                                Physical Locations
+                            </span>
+                        </div>
+                    </div>
+                    <!-- API Selector & Info -->
+                    <div class="flex-1 min-w-[250px] flex flex-col gap-4 justify-center">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="apiSourceSelect">Choose Data Source</label>
+                            <select id="apiSourceSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="onApiSourceChange()" aria-label="Select API data source">
+                                <option value="loc">Library of Congress (LoC) - Physical</option>
+                                <option value="ia" disabled>Internet Archive (Digital Only)</option>
+                                <option value="ol" disabled>Open Library (Digital Only)</option>
+                            </select>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                            <span>Currently, only the <b>Library of Congress</b> has physical locations mapped. Digital sources show global access.</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2">
+                            <b>LoC API:</b> <a href="https://www.loc.gov/books/?fo=json" target="_blank" rel="noopener" class="underline text-blue-600">https://www.loc.gov/books/?fo=json</a><br>
+                            <b>SRU Endpoint:</b> <a href="https://www.loc.gov/standards/sru/" target="_blank" rel="noopener" class="underline text-blue-600">SRU Info</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results (Hidden by default) -->
+        <div id="searchResults" class="hidden">
+            <!-- Content will be dynamically loaded -->
+        </div>
+
+        <!-- Other Pages (Hidden by default) -->
+        <div id="authorPage" class="hidden"></div>
+        <div id="authorsListPage" class="hidden"></div>
+        <div id="titlesListPage" class="hidden"></div>
+        <div id="digitalPage" class="hidden"></div>
+        <div id="librariesListPage" class="hidden"></div>
+        <div id="publicDomainSection" class="hidden"></div>
+        <div id="publicDomainAuthorsPage" class="hidden"></div>
+        <div id="publicDomainTitlesPage" class="hidden"></div>
+        <div id="libraryDetailsPage" class="hidden"></div>
+    </main>
+
+    <!-- Book Details Modal -->
+    <div id="bookModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div id="bookModalContent">
+                <!-- Modal content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // DATABASE CONNECTION CONFIGURATION
+        // ===========================================
+        
+        // TODO: Replace these with your actual API endpoints
+        const API_CONFIG = {
+            baseUrl: 'https://your-api-domain.com/api',
+            endpoints: {
+                search: '/search',
+                books: '/books',
+                authors: '/authors',
+                libraries: '/libraries',
+                publicDomain: '/public-domain'
+            },
+            // Add your API key if needed
+            apiKey: 'your-api-key-here'
+        };
+
+        // ===========================================
+        // API HELPER FUNCTIONS
+        // ===========================================
+        
+        async function apiRequest(endpoint, params = {}) {
+            try {
+                // Allow endpoint to be absolute URL or relative path.
+                let url;
+                try {
+                    // If endpoint is a full URL this will succeed
+                    url = new URL(endpoint);
+                } catch (e) {
+                    // Otherwise resolve relative to baseUrl
+                    url = new URL(endpoint, API_CONFIG.baseUrl);
+                }
+
+                // Append params to the URL's search params
+                Object.keys(params).forEach(key => {
+                    const val = params[key];
+                    if (val !== null && val !== undefined) {
+                        url.searchParams.append(key, String(val));
+                    }
+                });
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                // Add API key to headers if configured (do not log the key)
+                if (API_CONFIG.apiKey && API_CONFIG.apiKey !== 'your-api-key-here') {
+                    headers['Authorization'] = `Bearer ${API_CONFIG.apiKey}`;
+                }
+
+                // Helpful debug log for endpoint troubleshooting
+                console.debug('API request URL:', url.toString());
+
+                const response = await fetch(url.toString(), { headers });
+
+                const text = await response.text();
+
+                if (!response.ok) {
+                    // Try to include server returned body for better diagnostics
+                    let bodySnippet = '';
+                    try {
+                        bodySnippet = text ? ` - ${text.substring(0, 1000)}` : '';
+                    } catch (e) {
+                        bodySnippet = '';
+                    }
+                    throw new Error(`HTTP ${response.status} ${response.statusText}${bodySnippet}`);
+                }
+
+                // Attempt to parse JSON; if empty response return empty object
+                if (!text) return {};
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    // If response is not JSON, return it as text under 'data'
+                    return { data: text };
+                }
+            } catch (error) {
+                console.error('API request failed:', error);
+                return { error: error.message, data: [] };
+            }
+        }
+
+        // ===========================================
+        // DATA FETCHING FUNCTIONS
+        // ===========================================
+        
+        async function fetchBooks(filters = {}) {
+            showLoading('Loading books...');
+            const result = await apiRequest(API_CONFIG.endpoints.books, filters);
+            hideLoading();
+            return result.data || [];
+        }
+
+        async function fetchAuthors(filters = {}) {
+            showLoading('Loading authors...');
+            const result = await apiRequest(API_CONFIG.endpoints.authors, filters);
+            hideLoading();
+            return result.data || [];
+        }
+
+        async function fetchLibraries() {
+            showLoading('Loading libraries...');
+            const result = await apiRequest(API_CONFIG.endpoints.libraries);
+            hideLoading();
+            return result.data || [];
+        }
+
+        // Override: Use unified search for external APIs with map integration
+        async function searchBooks(query, filters = {}) {
+            showLoading('Searching...');
+            let results = await searchBooksUnified(query, filters);
+            
+            // If we have physical location data, add markers to map
+            if (libraryMap && results.length > 0) {
+                clearBookMarkers();
+                
+                // Extract physical locations from search results
+                const physicalLocations = [];
+                results.forEach(result => {
+                    if (result.item && result.item.physicalCopies) {
+                        result.item.physicalCopies.forEach(copy => {
+                            if (copy.coordinates) {
+                                physicalLocations.push({
+                                    lat: copy.coordinates.lat,
+                                    lng: copy.coordinates.lng,
+                                    libraryName: copy.libraryName || 'Unknown Library',
+                                    address: copy.address || '',
+                                    callNumber: copy.callNumber,
+                                    available: copy.available
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                if (physicalLocations.length > 0) {
+                    addBookLocationMarkers(physicalLocations);
+                }
+            }
+            
+            hideLoading();
+            return results;
+        }
+
+        async function fetchBookById(bookId) {
+            showLoading('Loading book details...');
+            const result = await apiRequest(`${API_CONFIG.endpoints.books}/${bookId}`);
+            hideLoading();
+            return result.data || null;
+        }
+
+        async function fetchAuthorById(authorId) {
+            showLoading('Loading author details...');
+            const result = await apiRequest(`${API_CONFIG.endpoints.authors}/${authorId}`);
+            hideLoading();
+            return result.data || null;
+        }
+
+        async function fetchLibraryById(libraryId) {
+            showLoading('Loading library details...');
+            const result = await apiRequest(`${API_CONFIG.endpoints.libraries}/${libraryId}`);
+            hideLoading();
+            return result.data || null;
+        }
+
+        // ===========================================
+        // UI STATE MANAGEMENT
+        // ===========================================
+        
+        let currentView = 'search';
+        let searchResults = [];
+        let breadcrumbHistory = [];
+        let currentFilters = {
+            availability: 'all',
+            language: 'all',
+            genre: 'all',
+            year: 'all'
+        };
+        let filtersVisible = true;
+
+        // ===========================================
+        // LOADING STATES
+        // ===========================================
+        
+        function showLoading(message = 'Loading...') {
+            const loadingHtml = `
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <div class="loading-spinner mx-auto mb-4"></div>
+                        <p class="text-gray-600">${message}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Show loading in the current active container
+            const activeContainer = document.querySelector('#searchResults:not(.hidden), #authorsListPage:not(.hidden), #titlesListPage:not(.hidden), #digitalPage:not(.hidden), #librariesListPage:not(.hidden)');
+            if (activeContainer) {
+                activeContainer.innerHTML = loadingHtml;
+            }
+        }
+
+        function hideLoading() {
+            // Loading will be replaced by actual content
+        }
+
+        function showNoResults(message = 'No results found', suggestion = 'Try different search terms or adjust your filters') {
+            return `
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">📚</div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">${message}</h3>
+                    <p class="text-gray-600 mb-4">${suggestion}</p>
+                    <button onclick="showSearchInterface()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                        Back to Search
+                    </button>
+                </div>
+            `;
+        }
+
+        // ===========================================
+        // NAVIGATION FUNCTIONS
+        // ===========================================
+        
+        function hideAllPages() {
+            const pages = [
+                'searchInterface', 'searchResults', 'authorPage', 'authorsListPage', 
+                'titlesListPage', 'digitalPage', 'librariesListPage', 'publicDomainSection',
+                'publicDomainAuthorsPage', 'publicDomainTitlesPage', 'libraryDetailsPage'
+            ];
+            pages.forEach(pageId => {
+                const element = document.getElementById(pageId);
+                if (element) element.classList.add('hidden');
+            });
+        }
+
+        function showSearchInterface(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                clearBreadcrumbs();
+                addToBreadcrumb('🔍 Search', 'showSearchInterface');
+            }
+            
+            currentView = 'search';
+            hideAllPages();
+            document.getElementById('searchInterface').classList.remove('hidden');
+        }
+
+        async function showSearchResults(addBreadcrumb = true) {
+            const query = document.getElementById('mainSearch').value;
+            if (!query.trim()) return;
+            
+            if (addBreadcrumb) {
+                addToBreadcrumb(`📋 Results: "${query}"`, 'showSearchResults', { query: query });
+            }
+            
+            currentView = 'results';
+            hideAllPages();
+            document.getElementById('searchResults').classList.remove('hidden');
+            
+            // Fetch search results from API
+            const results = await searchBooks(query, currentFilters);
+            searchResults = results;
+            renderSearchResults(query);
+        }
+
+        async function showAuthorsListPage(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                addToBreadcrumb('✍️ All Authors', 'showAuthorsListPage');
+            }
+            
+            currentView = 'authorsList';
+            hideAllPages();
+            document.getElementById('authorsListPage').classList.remove('hidden');
+            
+            const authors = await fetchAuthors();
+            renderAuthorsListPage(authors);
+        }
+
+        async function showTitlesListPage(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                addToBreadcrumb('📚 All Titles', 'showTitlesListPage');
+            }
+            
+            currentView = 'titlesList';
+            hideAllPages();
+            document.getElementById('titlesListPage').classList.remove('hidden');
+            
+            const books = await fetchBooks();
+            renderTitlesListPage(books);
+        }
+
+        async function showDigitalPage(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                addToBreadcrumb('📱 Digital Collection', 'showDigitalPage');
+            }
+            
+            currentView = 'digital';
+            hideAllPages();
+            document.getElementById('digitalPage').classList.remove('hidden');
+            
+            const digitalBooks = await fetchBooks({ digital: true });
+            renderDigitalPage(digitalBooks);
+        }
+
+        async function showLibrariesListPage(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                addToBreadcrumb('🏛️ Partner Libraries', 'showLibrariesListPage');
+            }
+            
+            currentView = 'librariesList';
+            hideAllPages();
+            document.getElementById('librariesListPage').classList.remove('hidden');
+            
+            const libraries = await fetchLibraries();
+            renderLibrariesListPage(libraries);
+        }
+
+        async function showPublicDomainSection(addBreadcrumb = true) {
+            if (addBreadcrumb) {
+                addToBreadcrumb('📜 Public Domain', 'showPublicDomainSection');
+            }
+            
+            currentView = 'publicDomain';
+            hideAllPages();
+            document.getElementById('publicDomainSection').classList.remove('hidden');
+            
+            const publicDomainData = await apiRequest(API_CONFIG.endpoints.publicDomain);
+            renderPublicDomainSection(publicDomainData.data || {});
+        }
+
+        // ===========================================
+        // RENDER FUNCTIONS
+        // ===========================================
+        
+        function renderSearchResults(query) {
+            const container = document.getElementById('searchResults');
+            
+            if (searchResults.length === 0) {
+                container.innerHTML = showNoResults(
+                    `No results found for "${query}"`,
+                    'Try different keywords or adjust your filters'
+                );
+                return;
+            }
+
+            const bookResults = searchResults.filter(r => r.type === 'book').length;
+            const authorResults = searchResults.filter(r => r.type === 'author').length;
+            
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">Search Results</h2>
+                            <p class="text-gray-600">Found ${searchResults.length} results for "${query}"</p>
+                            ${bookResults > 0 ? `<p class="text-sm text-gray-500">${bookResults} books • ${authorResults} authors</p>` : ''}
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        ${searchResults.map(result => renderSearchResultItem(result)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSearchResultItem(result) {
+            const { type, item } = result;
+            
+            if (type === 'book') {
+                return `
+                    <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 catalog-item cursor-pointer" onclick="showBookDetails('${item.id}')">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-16 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                📖
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-gray-900 mb-1">${item.title}</h3>
+                                <p class="text-gray-600 mb-2">by ${item.author}</p>
+                                <p class="text-gray-700 text-sm mb-3">${item.description || 'No description available'}</p>
+                                
+                                <div class="flex items-center space-x-4 text-sm">
+                                    <span class="text-yellow-600">⭐ ${item.rating || 'N/A'}</span>
+                                    <span class="text-green-600">📱 ${item.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
+                                    <span class="text-blue-600">📍 ${item.libraryCount || 0} libraries</span>
+                                </div>
+                                
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${item.genre || 'Unknown'}</span>
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${item.publishYear || 'Unknown'}</span>
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${item.pages || 'Unknown'} pages</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'author') {
+                return `
+                    <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 catalog-item cursor-pointer" onclick="showAuthorPage('${item.id}')">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                ✍️
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-gray-900 mb-1">${item.name}</h3>
+                                <p class="text-gray-600 mb-2">${item.nationality || 'Unknown'} • ${item.birthYear || 'Unknown'}</p>
+                                <p class="text-gray-700 text-sm mb-3">${item.biography || 'No biography available'}</p>
+                                
+                                <div class="flex items-center space-x-4 text-sm">
+                                    <span class="text-blue-600">📚 ${item.totalBooks || 0} books</span>
+                                    <span class="text-purple-600">🏆 ${item.awards?.length || 0} awards</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderAuthorsListPage(authors) {
+            const container = document.getElementById('authorsListPage');
+            
+            if (!authors || authors.length === 0) {
+                container.innerHTML = showNoResults('No authors found', 'Check your database connection');
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900">All Authors</h2>
+                            <p class="text-gray-600">${authors.length} authors in our collection</p>
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${authors.map(author => `
+                            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 catalog-item cursor-pointer" onclick="showAuthorPage('${author.id}')">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        ✍️
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-1">${author.name}</h3>
+                                        <p class="text-gray-600 mb-2">${author.nationality || 'Unknown'} • Born ${author.birthYear || 'Unknown'}</p>
+                                        <p class="text-gray-700 text-sm mb-3 line-clamp-2">${author.biography || 'No biography available'}</p>
+                                        
+                                        <div class="flex items-center space-x-4 text-sm">
+                                            <span class="text-blue-600">📚 ${author.totalBooks || 0} books</span>
+                                            <span class="text-purple-600">🏆 ${author.awards?.length || 0} awards</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTitlesListPage(books) {
+            const container = document.getElementById('titlesListPage');
+            
+            if (!books || books.length === 0) {
+                container.innerHTML = showNoResults('No books found', 'Check your database connection');
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900">All Titles</h2>
+                            <p class="text-gray-600">${books.length} books in our collection</p>
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        ${books.map(book => `
+                            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 catalog-item cursor-pointer" onclick="showBookDetails('${book.id}')">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-16 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                        📖
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-1">${book.title}</h3>
+                                        <p class="text-gray-600 mb-2">by ${book.author}</p>
+                                        <p class="text-gray-700 text-sm mb-3">${book.description || 'No description available'}</p>
+                                        
+                                        <div class="flex items-center space-x-4 text-sm">
+                                            <span class="text-yellow-600">⭐ ${book.rating || 'N/A'}</span>
+                                            <span class="text-green-600">📱 ${book.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
+                                            <span class="text-blue-600">📍 ${book.libraryCount || 0} libraries</span>
+                                        </div>
+                                        
+                                        <div class="flex items-center space-x-2 mt-2">
+                                            <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre || 'Unknown'}</span>
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear || 'Unknown'}</span>
+                                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${book.pages || 'Unknown'} pages</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDigitalPage(digitalBooks) {
+            const container = document.getElementById('digitalPage');
+            
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900">📱 Digital Collection</h2>
+                            <p class="text-gray-600">${digitalBooks?.length || 0} digital books available</p>
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <!-- Digital Stats -->
+                    <div class="grid md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">${digitalBooks?.length || 0}</div>
+                            <div class="text-blue-100">Total Digital Books</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">0</div>
+                            <div class="text-green-100">Digital Exclusive</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">0</div>
+                            <div class="text-purple-100">Partner Libraries</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">0</div>
+                            <div class="text-orange-100">Total Downloads</div>
+                        </div>
+                    </div>
+                    
+                    ${digitalBooks && digitalBooks.length > 0 ? `
+                        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                            <h3 class="text-xl font-bold text-gray-900 mb-6">📖 Digital Books Collection</h3>
+                            <div class="grid md:grid-cols-2 gap-6">
+                                ${digitalBooks.map(book => `
+                                    <div class="border border-gray-200 rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow" onclick="showBookDetails('${book.id}')">
+                                        <div class="flex items-start space-x-4">
+                                            <div class="w-16 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                                📱
+                                            </div>
+                                            <div class="flex-1">
+                                                <h4 class="text-lg font-bold text-gray-900 mb-1">${book.title}</h4>
+                                                <p class="text-gray-600 mb-2">by ${book.author}</p>
+                                                <p class="text-gray-700 text-sm mb-3">${book.description || 'No description available'}</p>
+                                                
+                                                <div class="flex items-center space-x-4 text-sm mb-3">
+                                                    <span class="text-yellow-600">⭐ ${book.rating || 'N/A'}</span>
+                                                    <span class="text-green-600">📥 ${book.downloadCount || 0} downloads</span>
+                                                </div>
+                                                
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre || 'Unknown'}</span>
+                                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear || 'Unknown'}</span>
+                                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Digital</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : showNoResults('No digital books found', 'Check your database connection')}
+                </div>
+            `;
+        }
+
+        function renderLibrariesListPage(libraries) {
+            const container = document.getElementById('librariesListPage');
+            
+            if (!libraries || libraries.length === 0) {
+                container.innerHTML = showNoResults('No libraries found', 'Check your database connection');
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900">Partner Libraries</h2>
+                            <p class="text-gray-600">${libraries.length} libraries worldwide</p>
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${libraries.map(library => `
+                            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 catalog-item cursor-pointer" onclick="showLibraryDetails('${library.id}')">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                                        🏛️
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-1">${library.name}</h3>
+                                        <p class="text-gray-600 mb-2">${library.city}, ${library.country}</p>
+                                        <p class="text-gray-700 text-sm mb-3">Established ${library.established || 'Unknown'} • ${library.totalBooks?.toLocaleString() || 'Unknown'} total books</p>
+                                        
+                                        <div class="flex items-center space-x-4 text-sm">
+                                            <span class="text-blue-600">📚 ${library.bookCount || 0} titles</span>
+                                            <span class="text-green-600">✅ ${library.availableBooks || 0} available</span>
+                                        </div>
+                                        
+                                        <div class="flex items-center space-x-2 mt-2">
+                                            ${library.digitalAccess ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Digital</span>' : ''}
+                                            ${library.physicalAccess ? '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Physical</span>' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPublicDomainSection(data) {
+            const container = document.getElementById('publicDomainSection');
+            
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900">📜 Public Domain Collection</h2>
+                            <p class="text-gray-600">Free books with expired copyrights</p>
+                        </div>
+                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
+                            ← Back to Search
+                        </button>
+                    </div>
+                    
+                    <!-- Public Domain Stats -->
+                    <div class="grid md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">${data.books?.length || 0}</div>
+                            <div class="text-orange-100">Free Books</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">${data.authors?.length || 0}</div>
+                            <div class="text-amber-100">Classic Authors</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">100%</div>
+                            <div class="text-yellow-100">Free Forever</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-red-500 to-pink-600 rounded-xl p-6 text-white">
+                            <div class="text-3xl font-bold">∞</div>
+                            <div class="text-red-100">No Restrictions</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">📜</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Public Domain Collection</h3>
+                        <p class="text-gray-600">Connect your database to display public domain books and authors</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ===========================================
+        // BREADCRUMB FUNCTIONS
+        // ===========================================
+        
+        function addToBreadcrumb(title, action, data = null) {
+            breadcrumbHistory = breadcrumbHistory.filter(item => item.title !== title);
+            breadcrumbHistory.push({
+                title: title,
+                action: action,
+                data: data,
+                timestamp: Date.now()
+            });
+            
+            if (breadcrumbHistory.length > 10) {
+                breadcrumbHistory = breadcrumbHistory.slice(-10);
+            }
+            
+            updateBreadcrumbDisplay();
+        }
+
+        function updateBreadcrumbDisplay() {
+            const breadcrumbContainer = document.getElementById('breadcrumbContainer');
+            if (!breadcrumbContainer) return;
+            
+            if (breadcrumbHistory.length <= 1) {
+                breadcrumbContainer.classList.add('hidden');
+                return;
+            }
+            
+            breadcrumbContainer.classList.remove('hidden');
+            breadcrumbContainer.innerHTML = renderBreadcrumbs();
+        }
+
+        function renderBreadcrumbs() {
+            if (breadcrumbHistory.length <= 1) return '';
+            
+            const breadcrumbItems = breadcrumbHistory.map((item, index) => {
+                const isLast = index === breadcrumbHistory.length - 1;
+                
+                if (isLast) {
+                    return `<span class="text-gray-900 font-medium">${item.title}</span>`;
+                }
+                
+                return `
+                    <button onclick="navigateToBreadcrumb(${index})" class="text-blue-600 hover:text-blue-700 hover:underline">
+                        ${item.title}
+                    </button>
+                    <svg class="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                `;
+            }).join('');
+            
+            return `
+                <div class="mb-6 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="flex items-center text-sm">
+                        ${breadcrumbItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearBreadcrumbs() {
+            breadcrumbHistory = [];
+            updateBreadcrumbDisplay();
+        }
+
+        function navigateToBreadcrumb(index) {
+            const item = breadcrumbHistory[index];
+            if (!item) return;
+            
+            breadcrumbHistory = breadcrumbHistory.slice(0, index + 1);
+            
+            // Execute navigation based on action
+            if (item.action === 'showSearchInterface') {
+                showSearchInterface(false);
+            } else if (item.action === 'showSearchResults') {
+                document.getElementById('mainSearch').value = item.data.query;
+                showSearchResults(false);
+            }
+            // Add more navigation cases as needed
+        }
+
+        // ===========================================
+        // DETAIL FUNCTIONS (PLACEHOLDERS)
+        // ===========================================
+        
+        async function showBookDetails(bookId, addBreadcrumb = true) {
+            const book = await fetchBookById(bookId);
+            if (!book) {
+                alert('Book not found');
+                return;
+            }
+            
+            if (addBreadcrumb) {
+                addToBreadcrumb(`📖 ${book.title}`, 'showBookDetails', { bookId: bookId });
+            }
+            
+            // TODO: Implement book details modal
+            document.getElementById('bookModalContent').innerHTML = `
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">${book.title}</h2>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">📖</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Book Details</h3>
+                        <p class="text-gray-600 mb-4">Implement your book details view here</p>
+                        <p class="text-sm text-gray-500">Book ID: ${bookId}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('bookModal').classList.remove('hidden');
+        }
+
+        async function showAuthorPage(authorId, addBreadcrumb = true) {
+            const author = await fetchAuthorById(authorId);
+            if (!author) {
+                alert('Author not found');
+                return;
+            }
+            
+            if (addBreadcrumb) {
+                addToBreadcrumb(`✍️ ${author.name}`, 'showAuthorPage', { authorId: authorId });
+            }
+            
+            // TODO: Implement author page
+            alert(`Author page for ${author.name} - implement this view`);
+        }
+
+        async function showLibraryDetails(libraryId, addBreadcrumb = true) {
+            const library = await fetchLibraryById(libraryId);
+            if (!library) {
+                alert('Library not found');
+                return;
+            }
+            
+            if (addBreadcrumb) {
+                addToBreadcrumb(`🏛️ ${library.name}`, 'showLibraryDetails', { libraryId: libraryId });
+            }
+            
+            // TODO: Implement library details modal
+            alert(`Library details for ${library.name} - implement this view`);
+        }
+
+        function closeModal() {
+            document.getElementById('bookModal').classList.add('hidden');
+        }
+
+        // ===========================================
+        // FILTER FUNCTIONS
+        // ===========================================
+        
+        function toggleFilters() {
+            filtersVisible = !filtersVisible;
+            const panel = document.getElementById('filterPanel');
+            const toggle = document.getElementById('filterToggle');
+            
+            if (filtersVisible) {
+                panel.classList.remove('hidden');
+                toggle.textContent = 'Hide Filters';
+            } else {
+                panel.classList.add('hidden');
+                toggle.textContent = 'Show Filters';
+            }
+        }
+
+        function applyFilters() {
+            currentFilters.availability = document.getElementById('availabilityFilter').value;
+            currentFilters.language = document.getElementById('languageFilter').value;
+            currentFilters.genre = document.getElementById('genreFilter').value;
+            currentFilters.year = document.getElementById('yearFilter').value;
+            
+            updateFilterSummary();
+            
+            // Re-run search with current query if there is one
+            const query = document.getElementById('mainSearch').value;
+            if (query && currentView === 'results') {
+                showSearchResults(false);
+            }
+        }
+
+        function updateFilterSummary() {
+            const activeFilters = [];
+            
+            if (currentFilters.availability !== 'all') {
+                const availabilityLabels = {
+                    'digital': 'Digital Only',
+                    'physical': 'Physical Only', 
+                    'both': 'Both Available',
+                    'available-now': 'Available Now'
+                };
+                activeFilters.push(`📚 ${availabilityLabels[currentFilters.availability]}`);
+            }
+            
+            if (currentFilters.language !== 'all') {
+                activeFilters.push(`🌍 ${currentFilters.language}`);
+            }
+            
+            if (currentFilters.genre !== 'all') {
+                activeFilters.push(`📖 ${currentFilters.genre}`);
+            }
+            
+            if (currentFilters.year !== 'all') {
+                activeFilters.push(`📅 ${currentFilters.year}`);
+            }
+            
+            const summary = document.getElementById('filterSummary');
+            if (activeFilters.length === 0) {
+                summary.textContent = 'No filters applied';
+                summary.className = 'text-sm text-gray-600';
+            } else {
+                summary.textContent = activeFilters.join(' • ');
+                summary.className = 'text-sm text-blue-600 font-medium';
+            }
+        }
+
+        function clearAllFilters() {
+            document.getElementById('availabilityFilter').value = 'all';
+            document.getElementById('languageFilter').value = 'all';
+            document.getElementById('genreFilter').value = 'all';
+            document.getElementById('yearFilter').value = 'all';
+            
+            currentFilters = {
+                availability: 'all',
+                language: 'all',
+                genre: 'all',
+                year: 'all'
+            };
+            
+            updateFilterSummary();
+            
+            // Re-run search with current query
+            const query = document.getElementById('mainSearch').value;
+            if (query && currentView === 'results') {
+                showSearchResults(false);
+            }
+        }
+
+        function quickSearch(genre) {
+            document.getElementById('mainSearch').value = genre;
+            showSearchResults();
+        }
+
+        // ===========================================
+        // SEARCH FUNCTIONS
+        // ===========================================
+        
+        async function performSearch(query) {
+            if (!query || query.length < 2) {
+                searchResults = [];
+                return;
+            }
+            
+            // This will be called by the search results page
+            // The actual API call is made in showSearchResults()
+        }
+
+        // ===========================================
+        // THEME FUNCTIONS
+        // ===========================================
+        
+        let isDarkMode = false;
+        
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            const body = document.body;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            
+            if (isDarkMode) {
+                body.classList.add('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                body.classList.remove('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+            
+            localStorage.setItem('darkMode', isDarkMode);
+        }
+        
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('darkMode');
+            if (savedTheme === 'true') {
+                isDarkMode = true;
+                document.body.classList.add('dark');
+                document.getElementById('sunIcon').classList.add('hidden');
+                document.getElementById('moonIcon').classList.remove('hidden');
+            }
+        }
+
+        // ===========================================
+        // LEAFLET MAP: Initialization and Helpers
+        // ===========================================
+
+        // Map state
+        let libraryMap = null;
+        let mapMarkers = [];
+        let bookMarkersLayer = null;
+        let currentApiSource = 'loc';
+
+        // Initialize the Leaflet map and add base markers
+        function initializeMap() {
+            const container = document.getElementById('libraryMap');
+            if (!container) return;
+            if (libraryMap) return; // already initialized
+
+            // Create map centered on a neutral view (continental US) — adjust as needed
+            libraryMap = L.map(container).setView([38.8977, -77.0365], 4);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(libraryMap);
+
+            // Add known library/service markers (LoC is available physically in this prototype)
+            addLibraryMarkers();
+        }
+
+        function addLibraryMarkers() {
+            if (!libraryMap) return;
+
+            // Example: Library of Congress marker (approximate coordinates)
+            try {
+                const loc = L.circleMarker([38.8886, -77.0047], {
+                    radius: 8,
+                    color: '#2563eb',
+                    fillColor: '#2563eb',
+                    fillOpacity: 0.9
+                }).addTo(libraryMap);
+                loc.bindPopup('<strong>Library of Congress</strong><br>Physical collections available');
+            } catch (e) {
+                console.warn('Failed to add base library markers', e);
+            }
+        }
+
+        // Remove book-specific markers
+        function clearBookMarkers() {
+            if (bookMarkersLayer) {
+                bookMarkersLayer.clearLayers();
+            }
+            mapMarkers = [];
+        }
+
+        // Add markers for specific book physical locations
+        function addBookLocationMarkers(locations) {
+            if (!libraryMap || !locations || locations.length === 0) return;
+
+            if (!bookMarkersLayer) {
+                bookMarkersLayer = L.layerGroup().addTo(libraryMap);
+            }
+
+            locations.forEach(loc => {
+                try {
+                    const marker = L.marker([loc.lat, loc.lng]).addTo(bookMarkersLayer);
+                    const popupHtml = `
+                        <div style="font-size:14px">
+                            <strong>${loc.libraryName || 'Library'}</strong><br>
+                            ${loc.address || ''}<br>
+                            ${loc.callNumber ? 'Call: ' + loc.callNumber + '<br>' : ''}
+                            ${typeof loc.available !== 'undefined' ? ('Available: ' + (loc.available ? 'Yes' : 'No')) : ''}
+                        </div>
+                    `;
+                    marker.bindPopup(popupHtml);
+                    mapMarkers.push(marker);
+                } catch (e) {
+                    console.warn('Failed to add book marker', e);
+                }
+            });
+
+            // Fit map to markers if possible
+            try {
+                const bounds = bookMarkersLayer.getBounds();
+                if (bounds.isValid()) {
+                    libraryMap.fitBounds(bounds, { maxZoom: 14, padding: [40, 40] });
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function onApiSourceChange() {
+            const sel = document.getElementById('apiSourceSelect');
+            if (!sel) return;
+            currentApiSource = sel.value;
+            // Future: toggle UI elements based on source capabilities
+        }
+
+
+        // ===========================================
+        // INITIALIZATION
+        // ===========================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            showSearchInterface();
+            
+            // Initialize Leaflet map
+            setTimeout(() => {
+                initializeMap();
+            }, 100); // Small delay to ensure DOM is ready
+            
+            // Close modal when clicking outside
+            document.getElementById('bookModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        });
+
+        // ===========================================
+        // DATABASE INTEGRATION GUIDE
+        // ===========================================
+        
+        /*
+        TO INTEGRATE WITH YOUR DATABASE:
+        
+        1. Update API_CONFIG at the top of this file:
+           - Set your API base URL
+           - Configure your endpoints
+           - Add your API key if needed
+        
+        2. Your API should return data in this format:
+        
+        BOOKS:
+        {
+            "data": [
+                {
+                    "id": "unique-book-id",
+                    "title": "Book Title",
+                    "author": "Author Name",
+                    "isbn": "978-1234567890",
+                    "genre": "Fiction",
+                    "subgenre": "Mystery",
+                    "publishYear": 2023,
+                    "publisher": "Publisher Name",
+                    "pages": 300,
+                    "language": "English",
+                    "rating": 4.5,
+                    "votes": 1234,
+                    "description": "Book description...",
+                    "summary": "Book summary...",
+                    "digitalAvailable": true,
+                    "libraryCount": 5,
+                    "downloadCount": 1000,
+                    "keywords": ["keyword1", "keyword2"],
+                    "subjects": ["Subject1", "Subject2"],
+                    "awards": ["Award Name"],
+                    "physicalCopies": [
+                        {
+                            "libraryId": "library-id",
+                            "available": true,
+                            "callNumber": "123.45 ABC",
+                            "floor": "2nd Floor",
+                            "section": "Fiction"
+                        }
+                    ],
+                    "digitalCopies": {
+                        "available": true,
+                        "format": ["PDF", "EPUB"],
+                        "fileSize": "2.4 MB",
+                        "downloadCount": 1000,
+                        "platforms": ["Kindle", "Apple Books"]
+                    }
+                }
+            ]
+        }
+        
+        AUTHORS:
+        {
+            "data": [
+                {
+                    "id": "unique-author-id",
+                    "name": "Author Name",
+                    "birthYear": 1970,
+                    "deathYear": null,
+                    "nationality": "American",
+                    "biography": "Author biography...",
+                    "totalBooks": 5,
+                    "genres": ["Fiction", "Mystery"],
+                    "awards": ["Award Name"],
+                    "website": "author-website.com"
+                }
+            ]
+        }
+        
+        LIBRARIES:
+        {
+            "data": [
+                {
+                    "id": "unique-library-id",
+                    "name": "Library Name",
+                    "city": "City",
+                    "country": "Country",
+                    "established": 1900,
+                    "totalBooks": 1000000,
+                    "digitalAccess": true,
+                    "physicalAccess": true,
+                    "address": "Full address...",
+                    "website": "library-website.com",
+                    "contact": "+1-234-567-8900",
+                    "bookCount": 150,
+                    "availableBooks": 120
+                }
+            ]
+        }
+        
+        3. Implement these API endpoints:
+           - GET /api/search?q=query&availability=all&language=all&genre=all&year=all
+           - GET /api/books?digital=true (for digital collection)
+           - GET /api/books/:id
+           - GET /api/authors
+           - GET /api/authors/:id
+           - GET /api/libraries
+           - GET /api/libraries/:id
+           - GET /api/public-domain (for public domain content)
+        
+        4. The frontend will automatically:
+           - Show loading states during API calls
+           - Handle errors gracefully
+           - Display "No results found" when appropriate
+           - Maintain navigation and breadcrumbs
+        
+        5. Customize the rendering functions if your data structure differs
+        */
+</script>
+</body>
+</html>
+</html>
