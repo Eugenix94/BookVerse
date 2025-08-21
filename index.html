@@ -108,6 +108,65 @@
         .dark .text-gray-700 {
             color: #d1d5db !important;
         }
+
+        .dark .text-gray-500 {
+            color: #9ca3af !important;
+        }
+
+        /* Broad dark-mode overrides to ensure consistent backgrounds, borders and card colors */
+        .dark header,
+        .dark .bg-white,
+        .dark .rounded-xl,
+        .dark .rounded-lg,
+        .dark .catalog-item,
+        .dark .shadow-sm,
+        .dark .p-6,
+        .dark .p-4,
+        .dark .p-3,
+        .dark .max-w-3xl,
+        .dark .max-w-4xl,
+        .dark .max-w-7xl {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+            box-shadow: var(--shadow) !important;
+        }
+
+        /* Modal/content cards */
+        .dark #bookModal .bg-white,
+        .dark #bookModalContent,
+        .dark .modal-content {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Breadcrumb and small panels */
+        .dark .bg-blue-50,
+        .dark .bg-gray-50,
+        .dark .bg-gray-100,
+        .dark .bg-gradient-to-br {
+            background-color: var(--bg-secondary) !important;
+        }
+
+        /* Inputs and selects */
+        .dark input,
+        .dark select,
+        .dark textarea {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        /* Small muted text */
+        .dark .text-gray-600 { color: var(--text-secondary) !important; }
+
+        /* Leaflet popups & map controls - darker background */
+        .dark .leaflet-popup-content-wrapper,
+        .dark .leaflet-control {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
         
         .dark .text-gray-500 {
             color: #9ca3af !important;
@@ -176,6 +235,16 @@
             line-height: 16px;
             font-size: 10px;
         }
+
+        /* Cover placeholder and lazy image styles */
+        .cover-placeholder {
+            width: 56px; /* approx w-14 */
+            height: 72px; /* approx h-18 */
+            background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%);
+            display:flex; align-items:center; justify-content:center;
+            color:#6b7280; font-size:20px;
+        }
+        .cover-thumb { width:100%; height:100%; object-fit:cover; display:block; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -183,7 +252,7 @@
     <header class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3 cursor-pointer" role="button" tabindex="0" aria-label="Go to home" onclick="showSearchInterface()" onkeypress="if(event.key==='Enter') showSearchInterface()">
                     <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
                         <span class="text-white font-bold text-sm">BV</span>
                     </div>
@@ -195,10 +264,15 @@
                     <button onclick="showAuthorsListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Authors</button>
                     <button onclick="showTitlesListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Titles</button>
                     <button onclick="showDigitalPage()" class="text-gray-600 hover:text-blue-600 font-medium">Digital</button>
-                    <button onclick="showPublicDomainSection()" class="text-gray-600 hover:text-blue-600 font-medium">Public Domain</button>
+                    
                     <button onclick="showLibrariesListPage()" class="text-gray-600 hover:text-blue-600 font-medium">Libraries</button>
                 </nav>
                 
+                <!-- Mobile menu button (visible on small screens) -->
+                <button id="mobileMenuButton" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2" aria-label="Open menu" aria-expanded="false">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+
                 <button onclick="toggleTheme()" id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Toggle dark/light theme" aria-label="Toggle theme">
                     <svg id="sunIcon" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -210,6 +284,18 @@
             </div>
         </div>
     </header>
+
+    <!-- Mobile navigation panel (hidden by default) -->
+    <div id="mobileNav" class="md:hidden hidden fixed top-16 right-4 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 overflow-hidden">
+        <div class="p-3">
+            <button onclick="showSearchInterface(); hideMobileNav();" class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Search</button>
+            <button onclick="showAuthorsListPage(); hideMobileNav();" class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Authors</button>
+            <button onclick="showTitlesListPage(); hideMobileNav();" class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Titles</button>
+            <button onclick="showDigitalPage(); hideMobileNav();" class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Digital</button>
+            
+            <button onclick="showLibrariesListPage(); hideMobileNav();" class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">Libraries</button>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main id="mainContent" class="max-w-7xl mx-auto px-4 py-8">
@@ -280,14 +366,6 @@
                                 <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
                                 Active Libraries
                             </span>
-                            <span class="mx-4 inline-flex items-center gap-2">
-                                <span class="w-3 h-3 bg-gray-400 rounded-full"></span>
-                                Digital Only
-                            </span>
-                            <span class="inline-flex items-center gap-2">
-                                <span class="w-3 h-3 bg-green-500 rounded-full"></span>
-                                Physical Locations
-                            </span>
                         </div>
                     </div>
                     <!-- API Selector & Info -->
@@ -302,7 +380,7 @@
                         </div>
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 flex items-center gap-2">
                             <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>
-                            <span>Currently, only the <b>Library of Congress</b> has physical locations mapped. Digital sources show global access.</span>
+                            <span>Currently, only the <b>Library of Congress</b> has physical locations mapped. Check out on Libraries for more information.</span>
                         </div>
                         <div class="text-xs text-gray-500 mt-2">
                             <b>LoC API:</b> <a href="https://www.loc.gov/books/?fo=json" target="_blank" rel="noopener" class="underline text-blue-600">https://www.loc.gov/books/?fo=json</a><br>
@@ -324,9 +402,8 @@
         <div id="titlesListPage" class="hidden"></div>
         <div id="digitalPage" class="hidden"></div>
         <div id="librariesListPage" class="hidden"></div>
-        <div id="publicDomainSection" class="hidden"></div>
-        <div id="publicDomainAuthorsPage" class="hidden"></div>
-        <div id="publicDomainTitlesPage" class="hidden"></div>
+        
+        
         <div id="libraryDetailsPage" class="hidden"></div>
     </main>
 
@@ -352,7 +429,7 @@
                 books: '/books',
                 authors: '/authors',
                 libraries: '/libraries',
-                publicDomain: '/public-domain'
+            
             },
             // Add your API key if needed
             apiKey: 'your-api-key-here'
@@ -364,14 +441,26 @@
         
         async function apiRequest(endpoint, params = {}) {
             try {
+                // If API_CONFIG is still the placeholder, avoid noisy network calls and return a clear error
+                if (API_CONFIG.baseUrl && API_CONFIG.baseUrl.includes('your-api-domain.com')) {
+                    console.debug('API_CONFIG baseUrl is placeholder; skipping network call to', endpoint);
+                    return { error: 'no_api_config', data: [] };
+                }
+
                 // Allow endpoint to be absolute URL or relative path.
                 let url;
                 try {
                     // If endpoint is a full URL this will succeed
                     url = new URL(endpoint);
                 } catch (e) {
-                    // Otherwise resolve relative to baseUrl
-                    url = new URL(endpoint, API_CONFIG.baseUrl);
+                    // Otherwise resolve relative to baseUrl; preserve base path if baseUrl contains a path
+                    const base = API_CONFIG.baseUrl || '';
+                    if (endpoint && endpoint.startsWith('/')) {
+                        // Join without dropping base path
+                        url = new URL(base.replace(/\/$/, '') + endpoint);
+                    } else {
+                        url = new URL(endpoint, base);
+                    }
                 }
 
                 // Append params to the URL's search params
@@ -431,21 +520,72 @@
             showLoading('Loading books...');
             const result = await apiRequest(API_CONFIG.endpoints.books, filters);
             hideLoading();
-            return result.data || [];
+            const data = result.data || [];
+            // If backend missing or returned error/empty, fall back to Open Library search
+            if (result.error || !data || (Array.isArray(data) && data.length === 0)) {
+                try {
+                    const q = filters.q || filters.query || '';
+                    if (filters.digital) {
+                        // Combined digital search: Open Library + Internet Archive
+                        const combined = await digitalSearch(q || 'the');
+                        return combined;
+                    }
+
+                    const ol = await performTitleSearch(q || 'the', { digital: !!filters.digital });
+                    return ol;
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            return data;
         }
 
         async function fetchAuthors(filters = {}) {
             showLoading('Loading authors...');
             const result = await apiRequest(API_CONFIG.endpoints.authors, filters);
             hideLoading();
-            return result.data || [];
+            const data = result.data || [];
+            if (result.error || !data || (Array.isArray(data) && data.length === 0)) {
+                try {
+                    const q = filters.q || filters.query || 'a';
+                    const ol = await performAuthorSearch(q);
+                    return ol;
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            return data;
         }
 
         async function fetchLibraries() {
             showLoading('Loading libraries...');
             const result = await apiRequest(API_CONFIG.endpoints.libraries);
             hideLoading();
-            return result.data || [];
+            const data = result.data || [];
+            if (result.error || !data || (Array.isArray(data) && data.length === 0)) {
+                // Fallback: surface Library of Congress as a sample library
+                return [
+                    {
+                        id: 'loc',
+                        name: 'Library of Congress',
+                        city: 'Washington',
+                        country: 'USA',
+                        established: 1800,
+                        totalBooks: 17000000,
+                        digitalAccess: true,
+                        physicalAccess: true,
+                        address: '101 Independence Ave SE, Washington, DC',
+                        website: 'https://www.loc.gov',
+                        contact: null,
+                        bookCount: 17000000,
+                        availableBooks: 1000000
+                    }
+                ];
+            }
+
+            return data;
         }
 
         // Override: Use unified search for external APIs with map integration
@@ -630,7 +770,7 @@
         function hideAllPages() {
             const pages = [
                 'searchInterface', 'searchResults', 'authorPage', 'authorsListPage', 
-                'titlesListPage', 'digitalPage', 'librariesListPage', 'publicDomainSection',
+                'titlesListPage', 'digitalPage', 'librariesListPage',
                 'publicDomainAuthorsPage', 'publicDomainTitlesPage', 'libraryDetailsPage'
             ];
             pages.forEach(pageId => {
@@ -756,18 +896,7 @@
             renderLibrariesListPage(libraries);
         }
 
-        async function showPublicDomainSection(addBreadcrumb = true) {
-            if (addBreadcrumb) {
-                addToBreadcrumb('📜 Public Domain', 'showPublicDomainSection');
-            }
-            
-            currentView = 'publicDomain';
-            hideAllPages();
-            document.getElementById('publicDomainSection').classList.remove('hidden');
-            
-            const publicDomainData = await apiRequest(API_CONFIG.endpoints.publicDomain);
-            renderPublicDomainSection(publicDomainData.data || {});
-        }
+        
 
         // ===========================================
         // RENDER FUNCTIONS
@@ -789,7 +918,6 @@
             
             container.innerHTML = `
                 <div class="mb-8">
-                    ${renderBreadcrumbs()}
                     
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -851,10 +979,7 @@
                                 <p class="text-gray-600 mb-2">${(item.nationality ? item.nationality : '')}${(item.nationality && item.birthYear) ? ' • ' : ''}${(item.birthYear ? item.birthYear : '')}</p>
                                 <p class="text-gray-700 text-sm mb-3">${item.biography || 'No biography available'}</p>
                                 
-                                <div class="flex items-center space-x-4 text-sm">
-                                    <span class="text-blue-600">📚 ${item.totalBooks || 0} books</span>
-                                    <span class="text-purple-600">🏆 ${item.awards?.length || 0} awards</span>
-                                </div>
+                                
                             </div>
                         </div>
                     </div>
@@ -872,7 +997,6 @@
 
             container.innerHTML = `
                 <div class="mb-8">
-                    ${renderBreadcrumbs()}
                     
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -896,10 +1020,7 @@
                                         <p class="text-gray-600 mb-2">${(author.nationality ? author.nationality : '')}${(author.nationality && author.birthYear) ? ' • Born ' : (author.birthYear ? 'Born ' : '')}${(author.birthYear ? author.birthYear : '')}</p>
                                         <p class="text-gray-700 text-sm mb-3 line-clamp-2">${author.biography || 'No biography available'}</p>
                                         
-                                        <div class="flex items-center space-x-4 text-sm">
-                                            <span class="text-blue-600">📚 ${author.totalBooks || 0} books</span>
-                                            <span class="text-purple-600">🏆 ${author.awards?.length || 0} awards</span>
-                                        </div>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -919,7 +1040,6 @@
 
             container.innerHTML = `
                 <div class="mb-8">
-                    ${renderBreadcrumbs()}
                     
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -968,7 +1088,6 @@
             
             container.innerHTML = `
                 <div class="mb-8">
-                    ${renderBreadcrumbs()}
                     
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -1000,6 +1119,15 @@
                         </div>
                     </div>
                     
+                    <!-- Search bar for digital sources -->
+                    <div class="mt-4 mb-6">
+                        <div class="flex gap-3">
+                            <input id="digitalSearchInput" type="text" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg" placeholder="Search Open Library + Internet Archive..." onkeypress="if(event.key==='Enter') doDigitalSearch()" />
+                            <button onclick="doDigitalSearch()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Search</button>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2">Searches both Open Library and Internet Archive for digital copies and covers.</div>
+                    </div>
+
                     ${digitalBooks && digitalBooks.length > 0 ? `
                         <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                             <h3 class="text-xl font-bold text-gray-900 mb-6">📖 Digital Books Collection</h3>
@@ -1007,8 +1135,8 @@
                                 ${digitalBooks.map(book => `
                                     <div class="border border-gray-200 rounded-lg p-6 cursor-pointer hover:shadow-md transition-shadow" onclick="showBookDetails('${book.id}')">
                                         <div class="flex items-start space-x-4">
-                                            <div class="w-16 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                                                📱
+                                            <div class="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                ${book.coverUrl ? `<img src="${book.coverUrl}" alt="Cover" class="w-full h-full object-cover">` : '📱'}
                                             </div>
                                             <div class="flex-1">
                                                 <h4 class="text-lg font-bold text-gray-900 mb-1">${book.title}</h4>
@@ -1034,6 +1162,80 @@
                     ` : showNoResults('No digital books found', 'Check your database connection')}
                 </div>
             `;
+
+            // Wire the digital search function used by the search bar
+            window.doDigitalSearch = async function() {
+                const q = document.getElementById('digitalSearchInput').value || '';
+                if (!q.trim()) return;
+                const container = document.getElementById('digitalPage');
+                // Show loading
+                container.querySelector('#digitalSearchInput').disabled = true;
+                const results = await digitalSearch(q, 30);
+                container.querySelector('#digitalSearchInput').disabled = false;
+
+                // Merge results into a normalized list and render using existing digital layout
+                renderDigitalPage(results);
+            };
+        }
+
+        // Internet Archive search helper (simple, CORS-friendly public search via IA's search API)
+        async function searchInternetArchive(query, limit = 20) {
+            if (!query) return [];
+            try {
+                const q = encodeURIComponent(query + ' mediatype:(texts OR books)');
+                const url = `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier,creator,title,description,mediatype,year&rows=${limit}&output=json`;
+                const res = await fetch(url);
+                if (!res.ok) return [];
+                const data = await res.json();
+                const docs = (data.response && data.response.docs) || [];
+                return docs.map(d => ({
+                    id: d.identifier ? `ia:${d.identifier}` : (`ia:${encodeURIComponent(d.title || '')}`),
+                    title: d.title || '',
+                    author: d.creator || '',
+                    description: d.description || '',
+                    digitalAvailable: true,
+                    source: 'ia',
+                    iaIdentifier: d.identifier || null,
+                    publishYear: d.year || null,
+                    coverUrl: d.identifier ? `https://archive.org/services/img/${d.identifier}` : ''
+                }));
+            } catch (e) {
+                console.warn('searchInternetArchive error', e);
+                return [];
+            }
+        }
+
+        // Combined digital search: Open Library title search + Internet Archive
+        async function digitalSearch(query, limit = 20) {
+            if (!query) return [];
+            try {
+                const olPromise = performTitleSearch(query, { digital: true });
+                const iaPromise = searchInternetArchive(query, limit);
+                const [olResults, iaResults] = await Promise.all([olPromise, iaPromise]);
+
+                // normalize Open Library results to include source flag
+                const olNorm = (olResults || []).map(o => ({ ...o, source: 'ol', coverUrl: o.coverUrl || (o.coverId ? `https://covers.openlibrary.org/b/id/${o.coverId}-M.jpg` : '') }));
+
+                // Merge by title/author de-duplication (simple): prefer OL then IA
+        const merged = [];
+                const seen = new Set();
+                olNorm.forEach(it => {
+                    const key = (it.title || '') + '|' + (it.author || '');
+                    seen.add(key.toLowerCase());
+                    merged.push(it);
+                });
+                (iaResults || []).forEach(it => {
+                    const key = (it.title || '') + '|' + (it.author || '');
+                    if (!seen.has(key.toLowerCase())) {
+            merged.push(it);
+                    }
+                });
+
+                return merged.slice(0, limit);
+            } catch (e) {
+                console.error('digitalSearch failed', e);
+                return [];
+            }
         }
 
         function renderLibrariesListPage(libraries) {
@@ -1046,7 +1248,6 @@
 
             container.innerHTML = `
                 <div class="mb-8">
-                    ${renderBreadcrumbs()}
                     
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -1088,51 +1289,7 @@
             `;
         }
 
-        function renderPublicDomainSection(data) {
-            const container = document.getElementById('publicDomainSection');
-            
-            container.innerHTML = `
-                <div class="mb-8">
-                    ${renderBreadcrumbs()}
-                    
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h2 class="text-3xl font-bold text-gray-900">📜 Public Domain Collection</h2>
-                            <p class="text-gray-600">Free books with expired copyrights</p>
-                        </div>
-                        <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
-                            ← Back to Search
-                        </button>
-                    </div>
-                    
-                    <!-- Public Domain Stats -->
-                    <div class="grid md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">${data.books?.length || 0}</div>
-                            <div class="text-orange-100">Free Books</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">${data.authors?.length || 0}</div>
-                            <div class="text-amber-100">Classic Authors</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">100%</div>
-                            <div class="text-yellow-100">Free Forever</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-red-500 to-pink-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">∞</div>
-                            <div class="text-red-100">No Restrictions</div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center">
-                        <div class="text-6xl mb-4">📜</div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Public Domain Collection</h3>
-                        <p class="text-gray-600">Connect your database to display public domain books and authors</p>
-                    </div>
-                </div>
-            `;
-        }
+        
 
         // ===========================================
         // BREADCRUMB FUNCTIONS
@@ -1213,8 +1370,19 @@
             } else if (item.action === 'showSearchResults') {
                 document.getElementById('mainSearch').value = item.data.query;
                 showSearchResults(false);
+            } else if (item.action === 'showLibrariesListPage') {
+                showLibrariesListPage(false);
+            } else if (item.action === 'showLibraryDetails') {
+                // data should include libraryId
+                const libId = item.data && item.data.libraryId;
+                if (libId) showLibraryDetails(libId, false);
+            } else if (item.action === 'showAuthorPage') {
+                const authorId = item.data && item.data.authorId;
+                if (authorId) showAuthorPage(authorId, false);
+            } else if (item.action === 'showBookDetails') {
+                const bookId = item.data && item.data.bookId;
+                if (bookId) showBookDetails(bookId, false);
             }
-            // Add more navigation cases as needed
         }
 
         // ===========================================
@@ -1312,6 +1480,43 @@
             }
         }
 
+        // Mobile nav helpers
+        function toggleMobileNav() {
+            const nav = document.getElementById('mobileNav');
+            const btn = document.getElementById('mobileMenuButton');
+            if (!nav) return;
+            const isHidden = nav.classList.contains('hidden');
+            if (isHidden) {
+                nav.classList.remove('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+            } else {
+                nav.classList.add('hidden');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function hideMobileNav() {
+            const nav = document.getElementById('mobileNav');
+            const btn = document.getElementById('mobileMenuButton');
+            if (!nav) return;
+            nav.classList.add('hidden');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+
+        // Close mobile nav on Escape or click outside
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') hideMobileNav();
+        });
+        document.addEventListener('click', function(e) {
+            const nav = document.getElementById('mobileNav');
+            const btn = document.getElementById('mobileMenuButton');
+            if (!nav || !btn) return;
+            if (nav.classList.contains('hidden')) return;
+            if (!nav.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                hideMobileNav();
+            }
+        });
+
         async function showAuthorPage(authorId, addBreadcrumb = true) {
             try {
                 const author = await fetchOpenLibraryAuthor(authorId);
@@ -1339,7 +1544,6 @@
 
                 container.innerHTML = `
                     <div class="mb-8">
-                        ${renderBreadcrumbs()}
                         <div class="flex items-start gap-6">
                             <div class="flex-shrink-0">
                                 ${author.photos && author.photos[0] ? `<img src="https://covers.openlibrary.org/a/id/${author.photos[0]}-M.jpg" class="rounded-lg" alt="Author">` : `<div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">✍️</div>`}
@@ -1363,18 +1567,287 @@
         }
 
         async function showLibraryDetails(libraryId, addBreadcrumb = true) {
-            const library = await fetchLibraryById(libraryId);
-            if (!library) {
-                alert('Library not found');
-                return;
+            // Load library record (falls back to sample data when API is unavailable)
+            let library = await fetchLibraryById(libraryId);
+            // If API returned an array of results, use the first entry
+            if (Array.isArray(library) && library.length > 0) {
+                library = library[0];
             }
-            
+
+            // Normalize API responses: some backends return [] or an object lacking properties
+            const isEmptyArray = Array.isArray(library) && library.length === 0;
+            const isMissingName = library && typeof library === 'object' && !library.name;
+            if (!library || isEmptyArray || isMissingName) {
+                // If API failed to return, use a client-side fallback for LoC
+                if (libraryId === 'loc') {
+                    library = {
+                        id: 'loc',
+                        name: 'Library of Congress',
+                        city: 'Washington',
+                        country: 'USA',
+                        established: 1800,
+                        totalBooks: 17000000,
+                        digitalAccess: true,
+                        physicalAccess: true,
+                        address: '101 Independence Ave SE, Washington, DC',
+                        website: 'https://www.loc.gov',
+                        contact: null,
+                        bookCount: 17000000,
+                        availableBooks: 1000000,
+                        coordinates: { lat: 38.8886, lng: -77.0047 }
+                    };
+                } else {
+                    alert('Library not found');
+                    return;
+                }
+            }
+
             if (addBreadcrumb) {
                 addToBreadcrumb(`🏛️ ${library.name}`, 'showLibraryDetails', { libraryId: libraryId });
             }
-            
-            // TODO: Implement library details modal
-            alert(`Library details for ${library.name} - implement this view`);
+
+            // Ensure the details page is visible
+            hideAllPages();
+            currentView = 'libraryDetails';
+            const container = document.getElementById('libraryDetailsPage');
+            container.classList.remove('hidden');
+
+            // Ensure we have coordinates for the map; coerce and validate numeric lat/lng
+            let coords = null;
+            try {
+                const raw = library && library.coordinates ? library.coordinates : null;
+                if (raw && typeof raw === 'object' && isFinite(raw.lat) && isFinite(raw.lng)) {
+                    coords = { lat: Number(raw.lat), lng: Number(raw.lng) };
+                } else if (library && library.id === 'loc') {
+                    // Default to LoC coordinates when no valid coordinates provided
+                    coords = { lat: 38.8886, lng: -77.0047 };
+                }
+            } catch (e) {
+                coords = (library && library.id === 'loc') ? { lat: 38.8886, lng: -77.0047 } : null;
+            }
+
+            // Render library header and embedded LoC-style search
+            container.innerHTML = `
+                <div class="mb-8">
+                    ${renderBreadcrumbs()}
+                    <div class="flex items-start gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-28 h-28 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl">🏛️</div>
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-3xl font-bold text-gray-900">${library.name}</h2>
+                            <p class="text-gray-600 mt-1">${library.address || (library.city && library.country ? library.city + ', ' + library.country : '')}</p>
+                            <div class="mt-3 text-sm text-gray-700">
+                                ${library.established ? `<strong>Established:</strong> ${library.established} • ` : ''}
+                                ${library.totalBooks ? `<strong>Total holdings:</strong> ${Number(library.totalBooks).toLocaleString()} • ` : ''}
+                                ${library.digitalAccess ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Digital</span>` : ''}
+                                ${library.physicalAccess ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Physical</span>` : ''}
+                            </div>
+
+                            <div class="mt-4 text-sm">
+                                ${library.website ? `<a href="${library.website}" target="_blank" rel="noopener" class="text-blue-600 underline">Official website</a>` : ''}
+                                ${library.website ? ' • ' : ''}
+                                <a href="https://www.loc.gov/" target="_blank" rel="noopener" class="text-blue-600 underline">Library of Congress catalog</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Embedded search bar (LoC-style) -->
+                    <div class="mt-6 bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="flex flex-col md:flex-row gap-3">
+                            <input id="libSearchInput" type="text" placeholder="Search this catalog (title or author)..." class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none" onkeypress="if(event.key==='Enter') doLibrarySearch()" />
+                            <div class="flex items-center gap-3">
+                                <label class="text-sm">
+                                    <input type="radio" name="libSearchMode" value="title" checked /> Title
+                                </label>
+                                <label class="text-sm">
+                                    <input type="radio" name="libSearchMode" value="author" /> Author
+                                </label>
+                                <button onclick="doLibrarySearch()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Search</button>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500">Searches use the Library of Congress public books API where possible; CORS restrictions may apply — if searches fail you can open the official LoC search link.</div>
+                    </div>
+
+                    <div class="mt-6 md:grid md:grid-cols-3 md:gap-6">
+                        <div class="md:col-span-2">
+                            <div id="libResults" class="space-y-4 mt-2"></div>
+                        </div>
+                        <div class="md:col-span-1">
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <h4 class="text-sm font-bold mb-2">Location</h4>
+                                <div id="libMiniMapDesc" class="text-sm text-gray-600 mb-3">${coords && isFinite(coords.lat) && isFinite(coords.lng) ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Coordinates not available'}</div>
+                                <div class="w-full h-48 rounded-lg overflow-hidden border border-gray-200" id="libDetailMapMini">Map will focus here</div>
+                                <div class="mt-3 text-xs text-gray-500">Use result items to view details; open official LoC records using the button on each result.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Center the main map on the library and add a marker
+            try {
+                if (libraryMap) {
+                    if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
+                        libraryMap.setView([coords.lat, coords.lng], 14);
+
+                        // remove previous library detail marker
+                        if (libraryMap.libraryDetailMarker) {
+                            try { libraryMap.removeLayer(libraryMap.libraryDetailMarker); } catch (e) {}
+                        }
+
+                        libraryMap.libraryDetailMarker = L.marker([coords.lat, coords.lng]).addTo(libraryMap);
+                        // Ensure the map layout is updated and pan so the marker is centered
+                        try {
+                            libraryMap.invalidateSize();
+                            libraryMap.panTo([coords.lat, coords.lng]);
+                        } catch (e) { /* ignore pan errors */ }
+                        // Use popup offset to keep marker visible and centered
+                        libraryMap.libraryDetailMarker.bindPopup(`<strong>${library.name || 'Library'}</strong><br>${library.address || ''}`, { offset: [0, -10] }).openPopup();
+                    } else {
+                        // No valid coords: keep a neutral view but still ensure map exists
+                        try { libraryMap.setView([38.8977, -77.0365], 4); } catch (e) {}
+                    }
+                }
+            } catch (e) { console.warn('Failed to center map on library', e); }
+
+            // Also copy the current leaflet view into the small mini map element by creating a shallow map if not present
+            try {
+                const miniId = 'libDetailMapMini';
+                let mini = document.getElementById(miniId)._leaflet_map;
+                    if (!document.getElementById(miniId)._leaflet_map) {
+                        const node = document.getElementById(miniId);
+                        const view = (coords && isFinite(coords.lat) && isFinite(coords.lng)) ? [coords.lat, coords.lng] : [38.8977, -77.0365];
+                        const zoom = (coords && isFinite(coords.lat) && isFinite(coords.lng)) ? 14 : 4;
+                        const miniMap = L.map(node, { zoomControl: false, attributionControl: false }).setView(view, zoom);
+                        const tile = isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                        L.tileLayer(tile, { maxZoom: 19 }).addTo(miniMap);
+                        if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
+                            const m = L.marker([coords.lat, coords.lng]).addTo(miniMap).bindPopup(library.name || 'Library', { offset: [0, -6] });
+                            try { miniMap.invalidateSize(); miniMap.panTo([coords.lat, coords.lng]); } catch (e) {}
+                        }
+                        // store reference so subsequent calls won't recreate
+                        document.getElementById(miniId)._leaflet_map = miniMap;
+                    } else {
+                        // update existing mini map view only when coords are valid
+                        if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
+                            document.getElementById(miniId)._leaflet_map.setView([coords.lat, coords.lng], 14);
+                        }
+                    }
+            } catch (e) { /* ignore mini map errors */ }
+
+            // wire search button function in the page scope
+            window.doLibrarySearch = async function() {
+                const q = document.getElementById('libSearchInput').value || '';
+                const mode = document.querySelector('input[name="libSearchMode"]:checked')?.value || 'title';
+                const resultsContainer = document.getElementById('libResults');
+                resultsContainer.innerHTML = `<div class="p-4 text-center text-gray-600">Searching…</div>`;
+
+                if (!q.trim()) {
+                    resultsContainer.innerHTML = `<div class="p-4 text-sm text-gray-600">Enter a search term (title or author).</div>`;
+                    return;
+                }
+
+                const res = await performLoCSearch(q, 20, mode);
+                if (!res || res.error === 'loc_cors') {
+                    resultsContainer.innerHTML = `
+                        <div class="p-4 text-sm text-red-600">LoC search failed (CORS or network). You can try the official LoC search:</div>
+                        <div class="p-4"><a href="https://www.loc.gov/books/?q=${encodeURIComponent(q)}" target="_blank" rel="noopener" class="text-blue-600 underline">Open LoC search for “${q}”</a></div>
+                    `;
+                    return;
+                }
+
+                if (!res || res.length === 0) {
+                    resultsContainer.innerHTML = `<div class="p-4 text-sm text-gray-600">No results found for "${q}"</div>`;
+                    return;
+                }
+
+                // Render results (author-mode shows authors; title-mode shows books)
+                if (mode === 'author') {
+                    resultsContainer.innerHTML = res.map(author => {
+                        const locLink = `https://www.loc.gov/books/?q=${encodeURIComponent(author.name)}`;
+                        return `
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1 flex items-start gap-4">
+                                        <div class="w-14 h-18 rounded overflow-hidden bg-gray-100 flex items-center justify-center js-cover-placeholder" data-title="${author.name}" data-author="${author.name}">
+                                            ${author.coverUrl ? `<img src="${author.coverUrl}" alt="${author.name} cover" class="cover-thumb">` : '<div class="text-xl">✍️</div>'}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold">${author.name}</div>
+                                            ${author.topWork ? `<div class="text-sm text-gray-600">Sample work: ${author.topWork}</div>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="flex flex-col items-end gap-2">
+                                            <a href="${locLink}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50" aria-label="Search Library of Congress for author ${author.name}">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7z"></path></svg>
+                                                Check in Library
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    // Try to enrich missing covers in the background
+                    setTimeout(() => enrichMissingCovers(12), 100);
+                } else {
+                    resultsContainer.innerHTML = res.map(item => {
+                        const locLink = (item.id && item.id.startsWith('http')) ? item.id : (`https://www.loc.gov/books/?q=${encodeURIComponent(item.title)}`);
+                        const call = item.physicalCopies && item.physicalCopies[0] ? item.physicalCopies[0].callNumber : null;
+                        return `
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1 flex items-start gap-4">
+                                        <div class="w-14 h-18 rounded overflow-hidden bg-gray-100 flex items-center justify-center js-cover-placeholder" data-title="${item.title}" data-author="${item.author || ''}">
+                                            ${item.coverUrl ? `<img src="${item.coverUrl}" alt="${item.title} cover" class="cover-thumb">` : '<div class="text-xl">📖</div>'}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold">${item.title}</div>
+                                            <div class="text-sm text-gray-600">${item.author || ''}${call ? ' • Call: ' + call : ''}</div>
+                                            ${item.description ? `<div class="mt-2 text-sm text-gray-700">${item.description}</div>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="flex flex-col items-end gap-2">
+                                            <a href="${locLink}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50" aria-label="Check this item in the library catalog for ${item.title}">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7z"></path></svg>
+                                                Check in Library
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    // Try to enrich missing covers in the background
+                    setTimeout(() => enrichMissingCovers(12), 100);
+                }
+            };
+
+            // helper exposed to page to show an individual result on the map
+            window.showLibraryResultOnMap = function(item) {
+                try {
+                    clearBookMarkers();
+                    const phys = (item.physicalCopies || []).map(p => {
+                        if (!p || !p.coordinates) return null;
+                        const lat = Number(p.coordinates.lat);
+                        const lng = Number(p.coordinates.lng);
+                        if (!isFinite(lat) || !isFinite(lng)) return null;
+                        return { lat, lng, libraryName: p.libraryName || 'Library', address: p.address || '', callNumber: p.callNumber || null, available: p.available };
+                    }).filter(Boolean);
+
+                    if (phys.length === 0) {
+                        alert('No physical location data available for this item.');
+                        return;
+                    }
+
+                    addBookLocationMarkers(phys);
+                } catch (e) {
+                    console.error('showLibraryResultOnMap error', e);
+                }
+            };
         }
 
         function closeModal() {
@@ -1413,14 +1886,28 @@
         async function searchBooksUnified(query, filters = {}) {
             const mode = (filters.mode || filters.searchMode || 'title').toLowerCase();
             const digital = !!filters.digital || filters.source === 'digital';
+            const isCatalog = (filters.source === 'catalog' || filters.source === 'loc');
 
             try {
+                // If user requested library catalog mode, use LoC search
+                if (isCatalog) {
+                    if (mode === 'author') {
+                        const authors = await performLoCSearch(query, 12, 'author');
+                        // LoC returns book-like results; map them as authors if needed
+                        return authors.map(a => ({ type: 'author', item: a }));
+                    }
+
+                    // catalog/title search
+                    const locBooks = await performLoCSearch(query, 12, 'title');
+                    return locBooks.map(b => ({ type: 'book', item: b }));
+                }
+
                 if (mode === 'author') {
                     const authors = await performAuthorSearch(query);
                     return authors.map(a => ({ type: 'author', item: a }));
                 }
 
-                // default: title search
+                // default: title search (digital/OpenLibrary)
                 const books = await performTitleSearch(query, { digital });
                 return books.map(b => ({ type: 'book', item: b }));
             } catch (err) {
@@ -1468,11 +1955,15 @@
                     const isbn = d.isbn && d.isbn[0];
                     const lccn = d.lccn && d.lccn[0];
                     const iaId = d.ia && d.ia[0];
+                    const coverId = d.cover_i || null;
+                    const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : (iaId ? `https://archive.org/services/img/${iaId}` : '');
 
                     const item = {
                         id: d.key || (isbn ? `ISBN:${isbn}` : title),
                         title: title,
                         author: author,
+                        coverId: coverId,
+                        coverUrl: coverUrl,
                         description: d.first_sentence || d.subtitle || '',
                         digitalAvailable: !!iaId || !!d.ebook_access || false,
                         libraryCount: lccn ? 1 : 0,
@@ -1500,6 +1991,156 @@
         }
 
         // ===========================================
+        // Library of Congress search (catalog mode)
+        // ===========================================
+        // Derive a best-effort cover URL from a LoC record using available identifiers
+        function getCoverUrlFromLocRecord(r) {
+            try {
+                if (!r || typeof r !== 'object') return '';
+                // Prefer ISBN via OpenLibrary covers
+                if (r.isbn && Array.isArray(r.isbn) && r.isbn[0]) {
+                    const isbn = String(r.isbn[0]).replace(/[^0-9Xx-]/g, '');
+                    if (isbn) return `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-M.jpg`;
+                }
+
+                // Internet Archive identifiers
+                if (r.ocaid) {
+                    return `https://archive.org/services/img/${encodeURIComponent(r.ocaid)}`;
+                }
+                if (r.identifier && typeof r.identifier === 'string') {
+                    // some records have identifier strings that may be IA ids
+                    return `https://archive.org/services/img/${encodeURIComponent(r.identifier)}`;
+                }
+
+                // fallback: try LCCN or other keys (not a reliable cover source)
+                return '';
+            } catch (e) {
+                return '';
+            }
+        }
+        async function performLoCSearch(query, limit = 12, mode = 'title') {
+            if (!query) return [];
+            try {
+                const q = mode === 'author' ? `creator:${query}` : query;
+                const url = `https://www.loc.gov/books/?q=${encodeURIComponent(q)}&fo=json&c=${limit}`;
+                const res = await fetch(url);
+                if (!res.ok) {
+                    console.warn('LoC responded with', res.status);
+                    return [];
+                }
+                const data = await res.json();
+                const results = data.results || [];
+
+                // If caller asked for authors, aggregate and return unique author entries
+                if (mode === 'author') {
+                    const authorsSet = new Map();
+                    results.forEach(r => {
+                        let creators = [];
+                        if (r.creator) creators = Array.isArray(r.creator) ? r.creator : [r.creator];
+                        else if (r.contributor) creators = Array.isArray(r.contributor) ? r.contributor : [r.contributor];
+
+                        creators.forEach(name => {
+                            if (!name) return;
+                            const key = String(name).trim();
+                            if (!key) return;
+                            if (!authorsSet.has(key)) {
+                                authorsSet.set(key, {
+                                    id: `loc-author:${encodeURIComponent(key)}`,
+                                    name: key,
+                                    topWork: r.title || '',
+                                    workSample: r,
+                                    coverUrl: getCoverUrlFromLocRecord(r)
+                                });
+                            }
+                        });
+                    });
+
+                    return Array.from(authorsSet.values()).slice(0, limit);
+                }
+
+        // Default: return book-like items (attach coverUrl when possible)
+        return results.map(r => {
+                    const title = r.title || '';
+                    const authors = r.creator || r.contributor || (r.contributors && r.contributors.join(', ')) || '';
+                    const description = r.description || r.notes || '';
+                    const isbn = (r.isbn && r.isbn[0]) || null;
+                    const lccn = r.lccn || null;
+                    const id = r.id || (lccn ? `loc:${lccn}` : (isbn ? `ISBN:${isbn}` : `loc:${encodeURIComponent(title)}`));
+
+                    const item = {
+                        id,
+                        title,
+            author: Array.isArray(authors) ? authors.join(', ') : authors,
+                        description,
+                        identifiers: { isbn, lccn },
+                        digitalAvailable: false,
+            coverUrl: getCoverUrlFromLocRecord(r) || '',
+                        libraryCount: 1,
+                        physicalCopies: [
+                            {
+                                libraryId: 'loc',
+                                libraryName: 'Library of Congress',
+                                available: true,
+                                callNumber: r.call_number ? (Array.isArray(r.call_number) ? r.call_number[0] : r.call_number) : null,
+                                address: '101 Independence Ave SE, Washington, DC',
+                                coordinates: { lat: 38.8886, lng: -77.0047 }
+                            }
+                        ]
+                    };
+
+                    return item;
+                });
+            } catch (err) {
+                console.warn('performLoCSearch failed (possible CORS):', err);
+                return { error: 'loc_cors' };
+            }
+        }
+
+        // Query Open Library search to try to find a cover by title+author (best-effort)
+        async function fetchOpenLibraryCoverByTitleAuthor(title, author) {
+            try {
+                if (!title) return '';
+                const q = `title:${title}` + (author ? `+author:${author}` : '');
+                const url = `https://openlibrary.org/search.json?${new URLSearchParams({ title: title, author: author || '', limit: 1 }).toString()}`;
+                const res = await fetch(url);
+                if (!res.ok) return '';
+                const data = await res.json();
+                const doc = (data.docs && data.docs[0]) || null;
+                if (!doc) return '';
+                const coverId = doc.cover_i || null;
+                if (coverId) return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                const iaId = doc.ia && doc.ia[0];
+                if (iaId) return `https://archive.org/services/img/${iaId}`;
+                // try isbn
+                const isbn = doc.isbn && doc.isbn[0];
+                if (isbn) return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+                return '';
+            } catch (e) { return ''; }
+        }
+
+        // After rendering results, find placeholders and try to enrich them with Open Library covers
+        async function enrichMissingCovers(limit = 8) {
+            const placeholders = Array.from(document.querySelectorAll('.js-cover-placeholder')).slice(0, limit);
+            for (const ph of placeholders) {
+                try {
+                    const title = ph.getAttribute('data-title') || '';
+                    const author = ph.getAttribute('data-author') || '';
+                    const candidate = await fetchOpenLibraryCoverByTitleAuthor(title, author);
+                    if (candidate) {
+                        const img = document.createElement('img');
+                        img.src = candidate;
+                        img.className = 'cover-thumb';
+                        img.alt = `${title} cover`;
+                        ph.innerHTML = '';
+                        ph.appendChild(img);
+                        // remove placeholder marker so we don't re-query
+                        ph.classList.remove('js-cover-placeholder');
+                    }
+                } catch (e) { /* ignore per-item errors */ }
+            }
+        }
+
+        // ===========================================
         // THEME FUNCTIONS
         // ===========================================
         
@@ -1515,12 +2156,34 @@
                 body.classList.add('dark');
                 sunIcon.classList.add('hidden');
                 moonIcon.classList.remove('hidden');
+
+                // Switch to dark tiles if the map exists
+                try {
+                    if (libraryMap && libraryMap.baseTileLayer) {
+                        libraryMap.removeLayer(libraryMap.baseTileLayer);
+                        libraryMap.baseTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; OpenStreetMap, &copy; CARTO'
+                        }).addTo(libraryMap);
+                    }
+                } catch (e) { console.warn('Failed to switch map to dark tiles', e); }
             } else {
                 body.classList.remove('dark');
                 sunIcon.classList.remove('hidden');
                 moonIcon.classList.add('hidden');
+
+                // Restore light tiles
+                try {
+                    if (libraryMap && libraryMap.baseTileLayer) {
+                        libraryMap.removeLayer(libraryMap.baseTileLayer);
+                        libraryMap.baseTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(libraryMap);
+                    }
+                } catch (e) { console.warn('Failed to restore map light tiles', e); }
             }
-            
+
             localStorage.setItem('darkMode', isDarkMode);
         }
         
@@ -1553,9 +2216,13 @@
             // Create map centered on a neutral view (continental US) — adjust as needed
             libraryMap = L.map(container).setView([38.8977, -77.0365], 4);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Create a base tile layer that we can swap when dark mode toggles
+            const lightTile = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            const darkTile = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+            const chosen = isDarkMode ? darkTile : lightTile;
+            libraryMap.baseTileLayer = L.tileLayer(chosen, {
                 maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
+                attribution: isDarkMode ? '&copy; OpenStreetMap, &copy; CARTO' : '&copy; OpenStreetMap contributors'
             }).addTo(libraryMap);
 
             // Add known library/service markers (LoC is available physically in this prototype)
@@ -1758,7 +2425,7 @@
            - GET /api/authors/:id
            - GET /api/libraries
            - GET /api/libraries/:id
-           - GET /api/public-domain (for public domain content)
+           
         
         4. The frontend will automatically:
            - Show loading states during API calls

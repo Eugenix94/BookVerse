@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BookVerse: LOC Search</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    input {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      flex: 1;
+      min-width: 200px;
+    }
+    .mode-btn {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #eee;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background-color: #2c3e50;
+      color: white;
+      border-color: #2c3e50;
+    }
+    button#searchBtn {
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button#searchBtn:hover {
+      background-color: #34495e;
+    }
+    .spinner {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .spinner::after {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ccc;
+      border-top-color: #2c3e50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .result {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .result h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #34495e;
+    }
+    .result p {
+      margin: 0.5rem 0;
+    }
+    .result a {
+      color: #2980b9;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>📚 BookVerse: LOC Search</h1>
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search for a book or author..." />
+    <button class="mode-btn active" id="titleBtn">Title</button>
+    <button class="mode-btn" id="authorBtn">Author</button>
+    <button id="searchBtn">Search</button>
+  </div>
+  <div id="results"></div>
+
+  <script>
+    const input = document.getElementById('searchInput');
+    const titleBtn = document.getElementById('titleBtn');
+    const authorBtn = document.getElementById('authorBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultsDiv = document.getElementById('results');
+
+    let searchMode = 'title';
+
+    titleBtn.addEventListener('click', () => {
+      searchMode = 'title';
+      titleBtn.classList.add('active');
+      authorBtn.classList.remove('active');
+    });
+
+    authorBtn.addEventListener('click', () => {
+      searchMode = 'author';
+      authorBtn.classList.add('active');
+      titleBtn.classList.remove('active');
+    });
+
+    function getAuthor(item) {
+      if (item.creator) return item.creator;
+      if (item.contributors && item.contributors.length > 0) return item.contributors.join(', ');
+      if (item.subjects && item.subjects.length > 0) {
+        const match = item.subjects.find(s => /freud|cervantes|author|writer/i.test(s));
+        if (match) return match;
+      }
+      return 'Unknown';
+    }
+
+    async function searchLOC() {
+      const query = input.value.trim();
+      if (!query) return;
+
+      resultsDiv.innerHTML = '<div class="spinner"></div>';
+
+      const locQuery = searchMode === 'author' ? `creator:${query}` : query;
+      const locUrl = `https://www.loc.gov/books/?q=${encodeURIComponent(locQuery)}&fo=json`;
+
+      try {
+        const locRes = await fetch(locUrl).then(res => res.json());
+        resultsDiv.innerHTML = '';
+
+        if (locRes.results && locRes.results.length > 0) {
+          locRes.results.forEach(item => {
+            const titleLink = item.lccn 
+              ? `https://lccn.loc.gov/${item.lccn}` 
+              : item.url || '#';
+
+            const div = document.createElement('div');
+            div.className = 'result';
+            div.innerHTML = `
+              <h2>${item.title}</h2>
+              <p><strong>Author:</strong> ${getAuthor(item)}</p>
+              <p><strong>Date:</strong> ${item.date || 'N/A'}</p>
+              <p>${item.description || 'No description available.'}</p>
+              <p><a href="${titleLink}" target="_blank">View on LOC</a></p>
+            `;
+            resultsDiv.appendChild(div);
+          });
+        } else {
+          resultsDiv.innerHTML = '<p>No results found in Library of Congress.</p>';
+        }
+      } catch (err) {
+        resultsDiv.innerHTML = '<p>Something went wrong. Please try again later.</p>';
+        console.error(err);
+      }
+    }
+
+    searchBtn.addEventListener('click', searchLOC);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchLOC();
+    });
+  </script>
+</body>
+</html>
