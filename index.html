@@ -224,107 +224,46 @@
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Find Books Worldwide</h2>
                 <p class="text-xl text-gray-600 mb-8">Search across global libraries with advanced filters</p>
                 
-                <!-- Main Search Bar -->
+                <!-- Simplified Main Search (demo-like) -->
                 <div class="max-w-4xl mx-auto">
                     <div class="relative mb-4">
                         <input 
                             type="text" 
                             id="mainSearch" 
-                            placeholder="Search by title, author, ISBN, or keyword..."
+                            placeholder="Search by title or author..."
                             class="w-full px-6 py-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 search-focus"
-                            onkeyup="performSearch(this.value)"
                             onkeypress="if(event.key==='Enter') showSearchResults()"
-                        >
-                        <button onclick="showSearchResults()" class="absolute right-2 top-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                        />
+                    </div>
+
+                    <div class="flex items-center justify-center gap-4 mt-4">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-700">Mode:</label>
+                            <label class="text-sm">
+                                <input type="radio" name="searchMode" value="title" checked /> Title
+                            </label>
+                            <label class="text-sm">
+                                <input type="radio" name="searchMode" value="author" /> Author
+                            </label>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-700">Source:</label>
+                            <label class="text-sm">
+                                <input type="radio" name="searchSource" value="digital" checked /> Digital
+                            </label>
+                            <label class="text-sm">
+                                <input type="radio" name="searchSource" value="catalog" /> Library Catalog
+                            </label>
+                        </div>
+
+                        <button onclick="showSearchResults()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
                             Search
                         </button>
                     </div>
-                    
-                    <!-- Advanced Filters -->
-                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">🔍 Advanced Filters</h3>
-                            <button onclick="toggleFilters()" id="filterToggle" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                Hide Filters
-                            </button>
-                        </div>
-                        
-                        <div id="filterPanel" class="grid md:grid-cols-4 gap-4">
-                            <!-- Availability Filter -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="availabilityFilter">📚 Availability</label>
-                                <select id="availabilityFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by availability">
-                                    <option value="all">All Types</option>
-                                    <option value="digital">Digital Only</option>
-                                    <option value="physical">Physical Only</option>
-                                    <option value="both">Both Available</option>
-                                    <option value="available-now">Available Now</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Language Filter -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="languageFilter">🌍 Language</label>
-                                <select id="languageFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by language">
-                                    <option value="all">All Languages</option>
-                                    <option value="English">English</option>
-                                    <option value="French">Français</option>
-                                    <option value="Spanish">Español</option>
-                                    <option value="German">Deutsch</option>
-                                    <option value="Japanese">日本語</option>
-                                    <option value="Chinese">中文</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Genre Filter -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="genreFilter">📖 Genre</label>
-                                <select id="genreFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by genre">
-                                    <option value="all">All Genres</option>
-                                    <option value="Fiction">Fiction</option>
-                                    <option value="Non-Fiction">Non-Fiction</option>
-                                    <option value="Biography">Biography</option>
-                                    <option value="Self-Help">Self-Help</option>
-                                    <option value="Science">Science</option>
-                                    <option value="History">History</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Year Range Filter -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2" for="yearFilter">📅 Published</label>
-                                <select id="yearFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="applyFilters()" aria-label="Filter by publication year">
-                                    <option value="all">Any Year</option>
-                                    <option value="2020-2024">2020-2024</option>
-                                    <option value="2015-2019">2015-2019</option>
-                                    <option value="2010-2014">2010-2014</option>
-                                    <option value="2000-2009">2000-2009</option>
-                                    <option value="before-2000">Before 2000</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- Filter Summary & Clear -->
-                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                            <div id="filterSummary" class="text-sm text-gray-600">
-                                No filters applied
-                            </div>
-                            <button onclick="clearAllFilters()" class="text-red-600 hover:text-red-700 text-sm font-medium">
-                                Clear All Filters
-                            </button>
-                        </div>
-                    </div>
                 </div>
                 
-                <!-- Quick Search Tags -->
-                <div class="flex justify-center flex-wrap gap-3 mt-6">
-                    <button onclick="quickSearch('fiction')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Fiction</button>
-                    <button onclick="quickSearch('non-fiction')" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">Non-Fiction</button>
-                    <button onclick="quickSearch('biography')" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">Biography</button>
-                    <button onclick="quickSearch('bestseller')" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">Bestsellers</button>
-                    <button onclick="quickSearch('award')" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition-colors">Award Winners</button>
-                    <button onclick="quickSearch('public domain')" class="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors">Public Domain</button>
-                </div>
+                
             </div>
 
             <!-- Enhanced Map & API Selector -->
@@ -548,16 +487,43 @@
 
         async function fetchBookById(bookId) {
             showLoading('Loading book details...');
-            const result = await apiRequest(`${API_CONFIG.endpoints.books}/${bookId}`);
-            hideLoading();
-            return result.data || null;
+            try {
+                // If bookId looks like an OpenLibrary key or ISBN, prefer OL API
+                if (!bookId) { hideLoading(); return null; }
+                const isOL = String(bookId).startsWith('/works/') || String(bookId).startsWith('/books/') || String(bookId).startsWith('OL') || String(bookId).startsWith('ISBN:') || String(bookId).includes('/works/') || String(bookId).includes('/books/');
+                if (isOL) {
+                    const ol = await fetchOpenLibraryWorkOrEdition(bookId);
+                    hideLoading();
+                    return ol || null;
+                }
+                const result = await apiRequest(`${API_CONFIG.endpoints.books}/${bookId}`);
+                hideLoading();
+                return result.data || null;
+            } catch (e) {
+                hideLoading();
+                console.error('fetchBookById fallback error', e);
+                return null;
+            }
         }
 
         async function fetchAuthorById(authorId) {
             showLoading('Loading author details...');
-            const result = await apiRequest(`${API_CONFIG.endpoints.authors}/${authorId}`);
-            hideLoading();
-            return result.data || null;
+            try {
+                if (!authorId) { hideLoading(); return null; }
+                const isOL = String(authorId).startsWith('/authors/') || String(authorId).startsWith('OL');
+                if (isOL) {
+                    const author = await fetchOpenLibraryAuthor(authorId);
+                    hideLoading();
+                    return author || null;
+                }
+                const result = await apiRequest(`${API_CONFIG.endpoints.authors}/${authorId}`);
+                hideLoading();
+                return result.data || null;
+            } catch (e) {
+                hideLoading();
+                console.error('fetchAuthorById fallback error', e);
+                return null;
+            }
         }
 
         async function fetchLibraryById(libraryId) {
@@ -567,6 +533,48 @@
             return result.data || null;
         }
 
+        // Open Library helpers (use public endpoints directly)
+        async function fetchOpenLibraryWorkOrEdition(id) {
+            // Accept keys like '/works/OL...W' or '/books/OL...M' or direct OL ids
+            try {
+                let url;
+                if (id && id.startsWith('/')) url = `https://openlibrary.org${id}.json`;
+                else if (id && (id.startsWith('OL') || id.includes('/works/') || id.includes('/books/'))) url = `https://openlibrary.org${id}.json`;
+                else url = `https://openlibrary.org/works/${encodeURIComponent(id)}.json`;
+
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const data = await res.json();
+                // normalize authors if necessary
+                if (data.authors && Array.isArray(data.authors)) {
+                    // fetch author names if nested
+                    const names = await Promise.all(data.authors.map(async a => {
+                        try {
+                            if (a.author && a.author.key) {
+                                const ar = await fetch(`https://openlibrary.org${a.author.key}.json`).then(r => r.json());
+                                return { name: ar.name, key: a.author.key };
+                            }
+                            return { name: a.name || '', key: a.key || '' };
+                        } catch (e) { return { name: '', key: '' }; }
+                    }));
+                    data.authors = names;
+                }
+                return data;
+            } catch (e) { console.error('fetchOpenLibraryWorkOrEdition', e); return null; }
+        }
+
+        async function fetchOpenLibraryAuthor(authorKey) {
+            if (!authorKey) return null;
+            try {
+                const key = authorKey.startsWith('/authors/') ? authorKey : (authorKey.startsWith('OL') ? `/authors/${authorKey}` : `/authors/${authorKey}`);
+                const url = `https://openlibrary.org${key}.json`;
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data;
+            } catch (e) { console.error('fetchOpenLibraryAuthor', e); return null; }
+        }
+
         // ===========================================
         // UI STATE MANAGEMENT
         // ===========================================
@@ -574,13 +582,8 @@
         let currentView = 'search';
         let searchResults = [];
         let breadcrumbHistory = [];
-        let currentFilters = {
-            availability: 'all',
-            language: 'all',
-            genre: 'all',
-            year: 'all'
-        };
-        let filtersVisible = true;
+    // Simplified: no advanced filters in this UI
+    let filtersVisible = false;
 
         // ===========================================
         // LOADING STATES
@@ -648,19 +651,55 @@
         }
 
         async function showSearchResults(addBreadcrumb = true) {
-            const query = document.getElementById('mainSearch').value;
+            const query = document.getElementById('mainSearch').value || '';
             if (!query.trim()) return;
-            
+
+            // Read mode and source from radios
+            const mode = document.querySelector('input[name="searchMode"]:checked')?.value || 'title';
+            const source = document.querySelector('input[name="searchSource"]:checked')?.value || 'digital';
+
             if (addBreadcrumb) {
                 addToBreadcrumb(`📋 Results: "${query}"`, 'showSearchResults', { query: query });
             }
-            
-            currentView = 'results';
+
+            // Route based on mode and source
             hideAllPages();
+            if (source === 'digital') {
+                // Author searches should show authors list
+                if (mode === 'author') {
+                    currentView = 'authorsList';
+                    document.getElementById('authorsListPage').classList.remove('hidden');
+                    const authors = await performAuthorSearch(query);
+                    searchResults = authors.map(a => ({ type: 'author', item: a }));
+                    renderAuthorsListPage(authors);
+                    return;
+                }
+
+                // For title searches prefer OpenLibrary / Internet Archive
+                currentView = 'digital';
+                document.getElementById('digitalPage').classList.remove('hidden');
+                const results = await searchBooks(query, { digital: true, mode });
+                searchResults = results;
+                // renderDigitalPage expects an array of book items (not wrapper objects)
+                const items = (results || []).map(r => r.item ? r.item : r);
+                renderDigitalPage(items);
+                return;
+            }
+
+            // Library catalog search (physical)
+            if (mode === 'author') {
+                currentView = 'authorsList';
+                document.getElementById('authorsListPage').classList.remove('hidden');
+                const authors = await performAuthorSearch(query);
+                searchResults = authors.map(a => ({ type: 'author', item: a }));
+                renderAuthorsListPage(authors);
+                return;
+            }
+
+            // Title/catalog search: use unified search that also maps physical locations
+            currentView = 'results';
             document.getElementById('searchResults').classList.remove('hidden');
-            
-            // Fetch search results from API
-            const results = await searchBooks(query, currentFilters);
+            const results = await searchBooks(query, { mode, source: 'catalog' });
             searchResults = results;
             renderSearchResults(query);
         }
@@ -783,18 +822,18 @@
                             <div class="flex-1">
                                 <h3 class="text-lg font-bold text-gray-900 mb-1">${item.title}</h3>
                                 <p class="text-gray-600 mb-2">by ${item.author}</p>
-                                <p class="text-gray-700 text-sm mb-3">${item.description || 'No description available'}</p>
+                                ${item.description ? `<p class="text-gray-700 text-sm mb-3">${item.description}</p>` : ''}
                                 
                                 <div class="flex items-center space-x-4 text-sm">
-                                    <span class="text-yellow-600">⭐ ${item.rating || 'N/A'}</span>
+                                    ${item.rating ? `<span class="text-yellow-600">⭐ ${item.rating}</span>` : ''}
                                     <span class="text-green-600">📱 ${item.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
                                     <span class="text-blue-600">📍 ${item.libraryCount || 0} libraries</span>
                                 </div>
                                 
                                 <div class="flex items-center space-x-2 mt-2">
-                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${item.genre || 'Unknown'}</span>
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${item.publishYear || 'Unknown'}</span>
-                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${item.pages || 'Unknown'} pages</span>
+                                    ${item.genre ? `<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${item.genre}</span>` : ''}
+                                    ${item.publishYear ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${item.publishYear}</span>` : ''}
+                                    ${item.pages ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${item.pages} pages</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -809,7 +848,7 @@
                             </div>
                             <div class="flex-1">
                                 <h3 class="text-lg font-bold text-gray-900 mb-1">${item.name}</h3>
-                                <p class="text-gray-600 mb-2">${item.nationality || 'Unknown'} • ${item.birthYear || 'Unknown'}</p>
+                                <p class="text-gray-600 mb-2">${(item.nationality ? item.nationality : '')}${(item.nationality && item.birthYear) ? ' • ' : ''}${(item.birthYear ? item.birthYear : '')}</p>
                                 <p class="text-gray-700 text-sm mb-3">${item.biography || 'No biography available'}</p>
                                 
                                 <div class="flex items-center space-x-4 text-sm">
@@ -854,7 +893,7 @@
                                     </div>
                                     <div class="flex-1">
                                         <h3 class="text-lg font-bold text-gray-900 mb-1">${author.name}</h3>
-                                        <p class="text-gray-600 mb-2">${author.nationality || 'Unknown'} • Born ${author.birthYear || 'Unknown'}</p>
+                                        <p class="text-gray-600 mb-2">${(author.nationality ? author.nationality : '')}${(author.nationality && author.birthYear) ? ' • Born ' : (author.birthYear ? 'Born ' : '')}${(author.birthYear ? author.birthYear : '')}</p>
                                         <p class="text-gray-700 text-sm mb-3 line-clamp-2">${author.biography || 'No biography available'}</p>
                                         
                                         <div class="flex items-center space-x-4 text-sm">
@@ -902,18 +941,18 @@
                                     <div class="flex-1">
                                         <h3 class="text-lg font-bold text-gray-900 mb-1">${book.title}</h3>
                                         <p class="text-gray-600 mb-2">by ${book.author}</p>
-                                        <p class="text-gray-700 text-sm mb-3">${book.description || 'No description available'}</p>
+                                        ${book.description ? `<p class="text-gray-700 text-sm mb-3">${book.description}</p>` : ''}
                                         
                                         <div class="flex items-center space-x-4 text-sm">
-                                            <span class="text-yellow-600">⭐ ${book.rating || 'N/A'}</span>
+                                            ${book.rating ? `<span class="text-yellow-600">⭐ ${book.rating}</span>` : ''}
                                             <span class="text-green-600">📱 ${book.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
                                             <span class="text-blue-600">📍 ${book.libraryCount || 0} libraries</span>
                                         </div>
                                         
                                         <div class="flex items-center space-x-2 mt-2">
-                                            <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre || 'Unknown'}</span>
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear || 'Unknown'}</span>
-                                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${book.pages || 'Unknown'} pages</span>
+                                            ${book.genre ? `<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre}</span>` : ''}
+                                            ${book.publishYear ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear}</span>` : ''}
+                                            ${book.pages ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">${book.pages} pages</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -974,16 +1013,16 @@
                                             <div class="flex-1">
                                                 <h4 class="text-lg font-bold text-gray-900 mb-1">${book.title}</h4>
                                                 <p class="text-gray-600 mb-2">by ${book.author}</p>
-                                                <p class="text-gray-700 text-sm mb-3">${book.description || 'No description available'}</p>
+                                                ${book.description ? `<p class="text-gray-700 text-sm mb-3">${book.description}</p>` : ''}
                                                 
                                                 <div class="flex items-center space-x-4 text-sm mb-3">
-                                                    <span class="text-yellow-600">⭐ ${book.rating || 'N/A'}</span>
-                                                    <span class="text-green-600">📥 ${book.downloadCount || 0} downloads</span>
+                                                    ${book.rating ? `<span class="text-yellow-600">⭐ ${book.rating}</span>` : ''}
+                                                    ${book.downloadCount ? `<span class="text-green-600">📥 ${book.downloadCount} downloads</span>` : ''}
                                                 </div>
                                                 
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre || 'Unknown'}</span>
-                                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear || 'Unknown'}</span>
+                                                    ${book.genre ? `<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${book.genre}</span>` : ''}
+                                                    ${book.publishYear ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">${book.publishYear}</span>` : ''}
                                                     <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Digital</span>
                                                 </div>
                                             </div>
@@ -1029,7 +1068,7 @@
                                     <div class="flex-1">
                                         <h3 class="text-lg font-bold text-gray-900 mb-1">${library.name}</h3>
                                         <p class="text-gray-600 mb-2">${library.city}, ${library.country}</p>
-                                        <p class="text-gray-700 text-sm mb-3">Established ${library.established || 'Unknown'} • ${library.totalBooks?.toLocaleString() || 'Unknown'} total books</p>
+                                        <p class="text-gray-700 text-sm mb-3">${library.established ? `Established ${library.established}` : ''}${(library.established && library.totalBooks) ? ' • ' : ''}${library.totalBooks ? `${library.totalBooks.toLocaleString()} total books` : ''}</p>
                                         
                                         <div class="flex items-center space-x-4 text-sm">
                                             <span class="text-blue-600">📚 ${library.bookCount || 0} titles</span>
@@ -1183,53 +1222,144 @@
         // ===========================================
         
         async function showBookDetails(bookId, addBreadcrumb = true) {
-            const book = await fetchBookById(bookId);
-            if (!book) {
-                alert('Book not found');
-                return;
-            }
-            
-            if (addBreadcrumb) {
-                addToBreadcrumb(`📖 ${book.title}`, 'showBookDetails', { bookId: bookId });
-            }
-            
-            // TODO: Implement book details modal
-            document.getElementById('bookModalContent').innerHTML = `
-                <div class="p-6">
-                    <div class="flex justify-between items-start mb-6">
-                        <h2 class="text-2xl font-bold text-gray-900">${book.title}</h2>
-                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
+            // Use Open Library to fetch work/edition details and render inside the modal
+            try {
+                const ol = await fetchOpenLibraryWorkOrEdition(bookId);
+                if (!ol) {
+                    document.getElementById('bookModalContent').innerHTML = `<div class="p-6"> <p class="text-red-600">Book details not found.</p></div>`;
+                    document.getElementById('bookModal').classList.remove('hidden');
+                    return;
+                }
+
+                if (addBreadcrumb) {
+                    addToBreadcrumb(`📖 ${ol.title || 'Book'}`, 'showBookDetails', { bookId: bookId });
+                }
+
+                const coverId = ol.covers && ol.covers[0];
+                const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : '';
+                const authors = (ol.authors || []).map(a => a.name || a.author?.key || '').filter(Boolean);
+                const description = (ol.description && (typeof ol.description === 'string' ? ol.description : ol.description.value)) || (ol.excerpts && ol.excerpts[0]?.excerpt) || '';
+
+                // Attempt to fetch edition info for richer metadata when this is a work
+                let edition = null;
+                try {
+                    if (ol.key && ol.key.startsWith('/works/')) {
+                        const edRes = await fetch(`https://openlibrary.org${ol.key}/editions.json?limit=5`).then(r => r.ok ? r.json() : null);
+                        if (edRes && edRes.entries && edRes.entries.length) {
+                            edition = edRes.entries.find(e => e.isbn_13 || e.isbn_10) || edRes.entries[0];
+                        }
+                    }
+                } catch (e) { /* ignore edition fetch errors */ }
+
+                const identifiers = (edition && edition.identifiers) || ol.identifiers || {};
+                const isbn = (identifiers.isbn_10 && identifiers.isbn_10[0]) || (identifiers.isbn_13 && identifiers.isbn_13[0]) || null;
+                const lccn = (identifiers.lccn && identifiers.lccn[0]) || null;
+                const publishers = (edition && edition.publishers) || ol.publishers || [];
+                const publishDate = (edition && edition.publish_date) || ol.first_publish_date || (ol.created && ol.created.value) || '';
+                const pages = (edition && edition.number_of_pages) || ol.number_of_pages || null;
+                const subjects = ol.subjects || (edition && edition.subjects) || [];
+                const langs = (edition && edition.languages) || ol.languages || [];
+                const languageNames = langs.map(l => (typeof l === 'string' ? l : (l.key || '')).replace('/languages/','')).filter(Boolean);
+
+                const locLink = isbn ? `https://catalog.loc.gov/vwebv/search?searchArg=${encodeURIComponent(isbn)}&searchCode=ISBN` : (lccn ? `https://id.loc.gov/resources/bibs/${encodeURIComponent(lccn)}` : null);
+
+                document.getElementById('bookModalContent').innerHTML = `
+                    <div class="p-6 max-w-3xl">
+                        <div class="flex items-start gap-6">
+                            <div class="flex-shrink-0">
+                                ${coverUrl ? `<img src="${coverUrl}" alt="Cover" class="rounded-lg w-40">` : '<div class="w-40 h-56 bg-gray-100 rounded-lg flex items-center justify-center">📖</div>'}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h2 class="text-2xl font-bold text-gray-900">${ol.title || 'Untitled'}</h2>
+                                        <p class="text-gray-600">${authors.join(', ')}</p>
+                                    </div>
+                                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                ${description ? `<div class="mt-4 text-gray-700">${description}</div>` : ''}
+
+                                <div class="mt-4 text-sm text-gray-700">
+                                    ${publishers.length ? `<div><strong>Publisher:</strong> ${publishers.join(', ')}</div>` : ''}
+                                    ${publishDate ? `<div><strong>Published:</strong> ${publishDate}</div>` : ''}
+                                    ${pages ? `<div><strong>Pages:</strong> ${pages}</div>` : ''}
+                                    ${languageNames.length ? `<div><strong>Language(s):</strong> ${languageNames.join(', ')}</div>` : ''}
+                                    ${isbn ? `<div><strong>ISBN:</strong> ${isbn}</div>` : ''}
+                                </div>
+
+                                <div class="mt-4 text-sm text-blue-700">
+                                    <a href="https://openlibrary.org${ol.key || ''}" target="_blank" rel="noopener">Open Library page</a>
+                                    ${ol.ocaid ? ` • <a href="https://archive.org/details/${ol.ocaid}" target="_blank" rel="noopener">Internet Archive</a>` : ''}
+                                    ${locLink ? ` • <a href="${locLink}" target="_blank" rel="noopener">Library of Congress</a>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        ${subjects && subjects.length ? `<div class="mt-6"><strong>Subjects:</strong> ${subjects.slice(0,10).join(', ')}</div>` : ''}
+                        ${edition && edition.publishers ? `<div class="mt-3 text-xs text-gray-500">Edition info: ${edition.key || ''}</div>` : ''}
                     </div>
-                    
-                    <div class="text-center py-12">
-                        <div class="text-6xl mb-4">📖</div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Book Details</h3>
-                        <p class="text-gray-600 mb-4">Implement your book details view here</p>
-                        <p class="text-sm text-gray-500">Book ID: ${bookId}</p>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('bookModal').classList.remove('hidden');
+                `;
+
+                document.getElementById('bookModal').classList.remove('hidden');
+            } catch (err) {
+                console.error('showBookDetails error', err);
+                document.getElementById('bookModalContent').innerHTML = `<div class="p-6"><p class="text-red-600">Failed to load book details.</p></div>`;
+                document.getElementById('bookModal').classList.remove('hidden');
+            }
         }
 
         async function showAuthorPage(authorId, addBreadcrumb = true) {
-            const author = await fetchAuthorById(authorId);
-            if (!author) {
-                alert('Author not found');
-                return;
+            try {
+                const author = await fetchOpenLibraryAuthor(authorId);
+                if (!author) {
+                    document.getElementById('authorPage').innerHTML = `<div class="p-6"><p class="text-red-600">Author not found.</p></div>`;
+                    document.getElementById('authorPage').classList.remove('hidden');
+                    return;
+                }
+
+                if (addBreadcrumb) {
+                    addToBreadcrumb(`✍️ ${author.name}`, 'showAuthorPage', { authorId: authorId });
+                }
+
+                hideAllPages();
+                currentView = 'author';
+                const container = document.getElementById('authorPage');
+                container.classList.remove('hidden');
+
+                // Fetch top works
+                let works = [];
+                try {
+                    const res = await fetch(`https://openlibrary.org${author.key}/works.json?limit=10`).then(r => r.json());
+                    works = res.entries || [];
+                } catch (e) { /* ignore */ }
+
+                container.innerHTML = `
+                    <div class="mb-8">
+                        ${renderBreadcrumbs()}
+                        <div class="flex items-start gap-6">
+                            <div class="flex-shrink-0">
+                                ${author.photos && author.photos[0] ? `<img src="https://covers.openlibrary.org/a/id/${author.photos[0]}-M.jpg" class="rounded-lg" alt="Author">` : `<div class="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">✍️</div>`}
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-bold">${author.name}</h2>
+                                <p class="text-gray-600 mt-2">${author.bio ? (typeof author.bio === 'string' ? author.bio : author.bio.value) : ''}</p>
+                                <div class="mt-4 text-sm text-gray-700">Top works:</div>
+                                <ul class="mt-2">
+                                    ${works.map(w => `<li class="mb-2"><a href="#" class="text-blue-600 underline" onclick="(function(e){e.preventDefault(); showBookDetails('${w.key}'); window.scrollTo({top:0,behavior:'smooth'}); })(event)">${w.title}</a></li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('showAuthorPage error', err);
+                document.getElementById('authorPage').innerHTML = `<div class="p-6"><p class="text-red-600">Failed to load author details.</p></div>`;
+                document.getElementById('authorPage').classList.remove('hidden');
             }
-            
-            if (addBreadcrumb) {
-                addToBreadcrumb(`✍️ ${author.name}`, 'showAuthorPage', { authorId: authorId });
-            }
-            
-            // TODO: Implement author page
-            alert(`Author page for ${author.name} - implement this view`);
         }
 
         async function showLibraryDetails(libraryId, addBreadcrumb = true) {
@@ -1255,94 +1385,15 @@
         // FILTER FUNCTIONS
         // ===========================================
         
-        function toggleFilters() {
-            filtersVisible = !filtersVisible;
-            const panel = document.getElementById('filterPanel');
-            const toggle = document.getElementById('filterToggle');
-            
-            if (filtersVisible) {
-                panel.classList.remove('hidden');
-                toggle.textContent = 'Hide Filters';
-            } else {
-                panel.classList.add('hidden');
-                toggle.textContent = 'Show Filters';
-            }
-        }
-
-        function applyFilters() {
-            currentFilters.availability = document.getElementById('availabilityFilter').value;
-            currentFilters.language = document.getElementById('languageFilter').value;
-            currentFilters.genre = document.getElementById('genreFilter').value;
-            currentFilters.year = document.getElementById('yearFilter').value;
-            
-            updateFilterSummary();
-            
-            // Re-run search with current query if there is one
-            const query = document.getElementById('mainSearch').value;
-            if (query && currentView === 'results') {
-                showSearchResults(false);
-            }
-        }
-
-        function updateFilterSummary() {
-            const activeFilters = [];
-            
-            if (currentFilters.availability !== 'all') {
-                const availabilityLabels = {
-                    'digital': 'Digital Only',
-                    'physical': 'Physical Only', 
-                    'both': 'Both Available',
-                    'available-now': 'Available Now'
-                };
-                activeFilters.push(`📚 ${availabilityLabels[currentFilters.availability]}`);
-            }
-            
-            if (currentFilters.language !== 'all') {
-                activeFilters.push(`🌍 ${currentFilters.language}`);
-            }
-            
-            if (currentFilters.genre !== 'all') {
-                activeFilters.push(`📖 ${currentFilters.genre}`);
-            }
-            
-            if (currentFilters.year !== 'all') {
-                activeFilters.push(`📅 ${currentFilters.year}`);
-            }
-            
-            const summary = document.getElementById('filterSummary');
-            if (activeFilters.length === 0) {
-                summary.textContent = 'No filters applied';
-                summary.className = 'text-sm text-gray-600';
-            } else {
-                summary.textContent = activeFilters.join(' • ');
-                summary.className = 'text-sm text-blue-600 font-medium';
-            }
-        }
-
-        function clearAllFilters() {
-            document.getElementById('availabilityFilter').value = 'all';
-            document.getElementById('languageFilter').value = 'all';
-            document.getElementById('genreFilter').value = 'all';
-            document.getElementById('yearFilter').value = 'all';
-            
-            currentFilters = {
-                availability: 'all',
-                language: 'all',
-                genre: 'all',
-                year: 'all'
-            };
-            
-            updateFilterSummary();
-            
-            // Re-run search with current query
-            const query = document.getElementById('mainSearch').value;
-            if (query && currentView === 'results') {
-                showSearchResults(false);
-            }
-        }
+    // Advanced filters removed - simplified search bar
 
         function quickSearch(genre) {
             document.getElementById('mainSearch').value = genre;
+            // default quick searches to digital title searches
+            const titleRadio = document.querySelector('input[name="searchMode"][value="title"]');
+            const digitalRadio = document.querySelector('input[name="searchSource"][value="digital"]');
+            if (titleRadio) titleRadio.checked = true;
+            if (digitalRadio) digitalRadio.checked = true;
             showSearchResults();
         }
 
@@ -1355,9 +1406,97 @@
                 searchResults = [];
                 return;
             }
-            
-            // This will be called by the search results page
-            // The actual API call is made in showSearchResults()
+            // Kept minimal: actual calls happen in showSearchResults via searchBooks
+        }
+
+        // Minimal unified search implementation using Open Library (demo-like)
+        async function searchBooksUnified(query, filters = {}) {
+            const mode = (filters.mode || filters.searchMode || 'title').toLowerCase();
+            const digital = !!filters.digital || filters.source === 'digital';
+
+            try {
+                if (mode === 'author') {
+                    const authors = await performAuthorSearch(query);
+                    return authors.map(a => ({ type: 'author', item: a }));
+                }
+
+                // default: title search
+                const books = await performTitleSearch(query, { digital });
+                return books.map(b => ({ type: 'book', item: b }));
+            } catch (err) {
+                console.error('searchBooksUnified failed', err);
+                return [];
+            }
+        }
+
+        // Use Open Library authors API to find authors
+        async function performAuthorSearch(query) {
+            if (!query) return [];
+            try {
+                const url = `https://openlibrary.org/search/authors.json?q=${encodeURIComponent(query)}`;
+                const res = await fetch(url);
+                if (!res.ok) return [];
+                const data = await res.json();
+                const docs = data.docs || [];
+                return docs.slice(0, 12).map(d => ({
+                    id: d.key || d.name,
+                    name: d.name || '',
+                    birthYear: d.birth_date || null,
+                    topWork: d.top_work || null,
+                    workCount: d.work_count || 0
+                }));
+            } catch (e) {
+                console.error('performAuthorSearch error', e);
+                return [];
+            }
+        }
+
+        // Use Open Library title search and map minimal fields; for catalog searches, attach LoC physical marker when LCCN exists
+        async function performTitleSearch(query, opts = {}) {
+            if (!query) return [];
+            const digitalOnly = !!opts.digital;
+            try {
+                const url = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=12`;
+                const res = await fetch(url);
+                if (!res.ok) return [];
+                const data = await res.json();
+                const docs = data.docs || [];
+
+                return docs.map(d => {
+                    const title = d.title || d.title_suggest || 'Untitled';
+                    const author = (d.author_name && d.author_name[0]) || (d.author && d.author[0]) || '';
+                    const isbn = d.isbn && d.isbn[0];
+                    const lccn = d.lccn && d.lccn[0];
+                    const iaId = d.ia && d.ia[0];
+
+                    const item = {
+                        id: d.key || (isbn ? `ISBN:${isbn}` : title),
+                        title: title,
+                        author: author,
+                        description: d.first_sentence || d.subtitle || '',
+                        digitalAvailable: !!iaId || !!d.ebook_access || false,
+                        libraryCount: lccn ? 1 : 0,
+                        physicalCopies: []
+                    };
+
+                    // If not digital-only and we have an LCCN, map to Library of Congress coordinates (best-effort)
+                    if (!digitalOnly && lccn) {
+                        item.physicalCopies.push({
+                            libraryId: 'loc',
+                            libraryName: 'Library of Congress',
+                            available: true,
+                            callNumber: d.callnumber ? d.callnumber[0] : null,
+                            address: '101 Independence Ave SE, Washington, DC',
+                            coordinates: { lat: 38.8886, lng: -77.0047 }
+                        });
+                    }
+
+                    return item;
+                }).slice(0, 12);
+            } catch (e) {
+                console.error('performTitleSearch error', e);
+                return [];
+            }
         }
 
         // ===========================================

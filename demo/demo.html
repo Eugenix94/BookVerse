@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BookVerse - Global Book Search & Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    #map { height: 400px; border-radius: 1rem; margin-top: 2rem; }
+  .book-map { height: 300px; border-radius: 0.5rem; margin-top: 1rem; }
+  .leaflet-popup-content-wrapper { font-family: 'Inter', sans-serif; }
+  /* Skeleton */
+  .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .skeleton-line { height: 14px; border-radius: 4px; margin-bottom: 8px; }
+    /* Loading overlay */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.25);
+      z-index: 60;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid rgba(255,255,255,0.9);
+      border-top-color: rgba(59,130,246,1);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Toast */
+    #toast {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      display: none;
+      z-index: 80;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white shadow-sm border-b sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-gray-900">📚 BookVerse Global Book Search</h1>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+      <div class="flex gap-3 items-center">
+        <label for="searchMode" class="text-sm text-gray-700">Mode</label>
+        <select id="searchMode" class="p-2 border border-gray-300 rounded" aria-label="Search mode"> 
+          <option value="title">Title</option>
+          <option value="author">Author</option>
+          <option value="all">All</option>
+        </select>
+        <div class="relative flex-1">
+          <input id="searchBar" type="text" placeholder="Search for a book title..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Search" />
+          <button id="clearSearch" type="button" title="Clear" class="absolute right-2 top-2 bg-gray-200 p-1 rounded hidden" aria-label="Clear search">✕</button>
+        </div>
+      </div>
+      <div id="resultCount" class="text-sm text-gray-600 mt-2" aria-live="polite"></div>
+    </div>
+    <div id="map" class="overview-map">
+      <!-- Persistent overview map showing libraries (LoC) -->
+    </div>
+    <div id="resultContainer"></div>
+    <div id="loadingOverlay">
+      <div class="flex flex-col items-center">
+        <div class="spinner"></div>
+        <p class="text-white mt-3">Loading…</p>
+      </div>
+    </div>
+  <div id="proxyStatus" class="mt-4 text-sm text-gray-600" aria-live="polite"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  const resultContainer = document.getElementById('resultContainer');
+  const searchBar = document.getElementById('searchBar');
+  const resultCount = document.getElementById('resultCount');
+  const clearSearchBtn = document.getElementById('clearSearch');
+  const searchMode = document.getElementById('searchMode');
+  const mapDiv = document.getElementById('map');
+  // persistent overview map and per-result map instances
+  let overviewMap = null;
+  // per-result map instances stored by container id
+  const mapsById = {};
+  let marker;
+  // simple cache for LoC holdings checks to avoid repeat network calls
+  const holdingsCache = new Map();
+  // hydrate cache from localStorage when available
+  try {
+    const stored = localStorage.getItem('bookverse_holdingsCache');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      Object.keys(parsed).forEach(k => holdingsCache.set(k, parsed[k]));
+    }
+  } catch (e) { /* ignore */ }
+
+  function persistHoldingsCache() {
+    try { localStorage.setItem('bookverse_holdingsCache', JSON.stringify(Object.fromEntries(holdingsCache))); } catch (e) {}
+  }
+
+    // Library of Congress coordinates
+    const locLibrary = {
+      name: 'Library of Congress',
+      lat: 38.8887,
+      lng: -77.0047,
+      city: 'Washington DC',
+      country: 'USA'
+    };
+
+    // Render a map inside a specific container (on-demand, per result)
+    function showLoCMapAt(containerId, bookTitle) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      // remove existing map if present
+      if (mapsById[containerId]) {
+        try { mapsById[containerId].remove(); } catch (e) { /* ignore */ }
+        delete mapsById[containerId];
+      }
+
+      try {
+        const mapInstance = L.map(containerId).setView([locLibrary.lat, locLibrary.lng], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapInstance);
+        L.marker([locLibrary.lat, locLibrary.lng])
+          .addTo(mapInstance)
+          .bindPopup(`<strong>${locLibrary.name}</strong><br>${locLibrary.city}, ${locLibrary.country}<br><em>${bookTitle}</em>`)
+          .openPopup();
+        mapsById[containerId] = mapInstance;
+      } catch (err) {
+        console.error('Error initializing map:', err);
+        // clear the container to avoid leaving blank UI
+        container.innerHTML = '<p class="text-red-600">Unable to load map.</p>';
+      }
+    }
+
+    function closeMapById(containerId) {
+      const container = document.getElementById(containerId);
+      if (mapsById[containerId]) {
+        try { mapsById[containerId].remove(); } catch (e) {}
+        delete mapsById[containerId];
+      }
+      if (container) container.remove();
+    }
+
+    function closeAllMaps() {
+      Object.keys(mapsById).forEach(id => {
+        try { mapsById[id].remove(); } catch (e) {}
+        delete mapsById[id];
+      });
+      // remove any stray inline map containers inside resultContainer
+      Array.from(resultContainer.querySelectorAll('.map-wrapper')).forEach(n => n.remove());
+    }
+
+    // Initialize a persistent overview map at the top of the page
+    function initOverviewMap() {
+      const id = 'map';
+      const el = document.getElementById(id);
+      if (!el) return;
+      // create a map only once
+      if (overviewMap) try { overviewMap.remove(); } catch (e) {}
+      try {
+        overviewMap = L.map(id, { scrollWheelZoom: false }).setView([locLibrary.lat, locLibrary.lng], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(overviewMap);
+        L.marker([locLibrary.lat, locLibrary.lng])
+          .addTo(overviewMap)
+          .bindPopup(`<strong>${locLibrary.name}</strong><br>${locLibrary.city}, ${locLibrary.country}`);
+      } catch (err) {
+        console.error('Could not initialize overview map', err);
+      }
+    }
+
+    // Check Library of Congress holdings using id.loc.gov when LCCN is available
+    async function checkLoCHoldings(lccn) {
+      if (!lccn) return 'no_lccn';
+      // Use local proxy to avoid CORS issues
+      const proxyUrl = `http://localhost:3000/loc/bib/${encodeURIComponent(lccn)}`;
+      if (holdingsCache.has(lccn)) return holdingsCache.get(lccn);
+      let status = 'unknown';
+      try {
+        const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) {
+          status = (res.status === 404) ? 'not_found' : 'unknown';
+        } else {
+          const data = await res.json();
+          status = (data && Object.keys(data).length > 0) ? 'found' : 'not_found';
+        }
+      } catch (err) {
+        console.error('LoC holdings proxy check failed:', err);
+        status = 'unknown';
+      }
+      try { holdingsCache.set(lccn, status); persistHoldingsCache(); } catch (e) {}
+      return status;
+    }
+
+    // Detect whether local proxy is reachable
+    let proxyAvailable = false;
+    async function detectProxy() {
+      try {
+        const res = await fetch('http://localhost:3000/status');
+        if (res.ok) { proxyAvailable = true; document.getElementById('proxyStatus').textContent = 'Proxy: running (local)'; }
+        else { proxyAvailable = false; document.getElementById('proxyStatus').innerHTML = 'Proxy: not running — <button id="retryProxy" class="underline">Retry</button>'; }
+      } catch (err) {
+        proxyAvailable = false;
+        document.getElementById('proxyStatus').innerHTML = 'Proxy: not running — <button id="retryProxy" class="underline">Retry</button> <button id="copyStart" class="ml-2 underline">Copy start command</button>';
+      }
+      const btn = document.getElementById('retryProxy');
+      if (btn) btn.addEventListener('click', () => { document.getElementById('proxyStatus').textContent = 'Checking...'; detectProxy(); });
+      const copyBtn = document.getElementById('copyStart');
+      if (copyBtn) copyBtn.addEventListener('click', () => {
+        copyToClipboard('npm install && npm start');
+        showToast('Start command copied to clipboard');
+      });
+    }
+
+  // Run detection on load
+  detectProxy();
+  // Initialize persistent overview map
+  try { initOverviewMap(); } catch (e) { console.error(e); }
+
+  // Restore last search mode
+  try { const saved = localStorage.getItem('bookverse_searchMode'); if (saved) searchMode.value = saved; } catch (e) {}
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
+      }
+    }
+
+    function showToast(msg, ms = 2500) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg; t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, ms);
+    }
+
+    // Debounced search helper
+    function debounce(fn, ms = 450) {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    // Support Enter key to run the search immediately and use debounced change for typing
+    const triggerSearch = () => searchBar.dispatchEvent(new Event('change'));
+    searchBar.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerSearch(); });
+    const debouncedTrigger = debounce(triggerSearch, 550);
+    searchBar.addEventListener('input', () => {
+      // show clear button when text exists
+      if (searchBar.value.trim()) clearSearchBtn.classList.remove('hidden'); else clearSearchBtn.classList.add('hidden');
+      debouncedTrigger();
+    });
+    clearSearchBtn.addEventListener('click', () => { searchBar.value = ''; searchBar.focus(); clearSearchBtn.classList.add('hidden'); triggerSearch(); });
+
+    // Update placeholder when mode changes and persist
+    searchMode.addEventListener('change', () => {
+      try { localStorage.setItem('bookverse_searchMode', searchMode.value); } catch (e) {}
+      if (searchMode.value === 'author') searchBar.placeholder = 'Search for an author...';
+      else searchBar.placeholder = 'Search for a book title...';
+      searchBar.focus();
+    });
+
+    function showLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    searchBar.addEventListener('change', async () => {
+      const query = searchBar.value.trim();
+      resultContainer.innerHTML = '';
+      // close any open per-result maps when running a new search
+      closeAllMaps();
+      if (!query) return;
+      // if author mode, use author search; if all, run both author and title searches
+      if (searchMode.value === 'author') {
+        showLoading();
+        try { await performAuthorSearch(query); } finally { hideLoading(); }
+        return;
+      }
+
+      // For title or all, run the title search (performTitleSearch). If mode is 'all', first run author search and append results.
+      if (searchMode.value === 'all') {
+        showLoading();
+        try { await performAuthorSearch(query, { append: true }); } catch (e) { console.error(e); }
+        finally { /* we'll continue to title search below */ }
+      }
+
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'bg-white rounded-lg shadow p-6 flex gap-6 mb-6';
+      // append early so user sees the card immediately
+      resultContainer.appendChild(resultDiv);
+
+      showLoading();
+      try {
+        await performTitleSearch(query, resultDiv);
+      } catch (err) {
+        console.error('Search error:', err);
+        resultDiv.innerHTML = `<p class="text-red-600">Error fetching metadata. Try again later.</p>`;
+      } finally {
+        hideLoading();
+      }
+      // end of change handler
+    });
+
+    // AUTHOR SEARCH IMPLEMENTATION
+    async function performAuthorSearch(query, opts = {}) {
+      const append = opts && opts.append === true;
+      // Use Open Library authors search
+      const searchUrl = `https://openlibrary.org/search/authors.json?q=${encodeURIComponent(query)}`;
+      try {
+        const res = await fetch(searchUrl).then(r => r.json());
+        const authors = res.docs || [];
+        if (authors.length === 0) {
+          if (!append) resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6"><p class="text-red-600">No authors found.</p></div>`;
+          return;
+        }
+
+        // Render author cards
+        if (!append) resultContainer.innerHTML = '';
+        authors.slice(0, 10).forEach(author => {
+          const card = document.createElement('div');
+          card.className = 'bg-white rounded-lg shadow p-4 mb-4';
+          const name = author.name || 'Unknown';
+          const birth = author.birth_date ? ` (b. ${author.birth_date})` : '';
+          const topWorks = author.top_work ? `<div class="text-sm text-gray-700">Top work: ${author.top_work}</div>` : '';
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-lg font-semibold">${name}${birth}</h3>
+                ${topWorks}
+                <div class="mt-2 text-sm text-blue-700"><a href="https://openlibrary.org/authors/${author.key}" target="_blank">Open Library author page</a> • <a href="https://catalog.loc.gov/vwebv/search?searchArg=${encodeURIComponent(author.name)}&searchCode=NAME" target="_blank">LoC search</a></div>
+              </div>
+            </div>
+          `;
+
+          // Fetch author's works and show a few clickable titles
+          (async () => {
+            try {
+              const worksRes = await fetch(`https://openlibrary.org/authors/${author.key}/works.json?limit=5`).then(r => r.json());
+              const works = worksRes.entries || [];
+              if (works.length) {
+                const list = document.createElement('ul');
+                list.className = 'mt-3 ml-4 list-disc text-sm';
+                works.slice(0,5).forEach(w => {
+                  const li = document.createElement('li');
+                  const title = w.title || 'Untitled';
+                  const a = document.createElement('a');
+                  a.href = '#';
+                  a.textContent = title;
+                  a.className = 'text-blue-600 underline';
+                  a.addEventListener('click', (e) => { e.preventDefault();
+                    // Jump to title search for this work
+                    searchMode.value = 'title';
+                    searchBar.placeholder = 'Search for a book title...';
+                    searchBar.value = title;
+                    searchBar.dispatchEvent(new Event('change'));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  });
+                  // add LoC link for work
+                  const locLinkWork = document.createElement('a');
+                  locLinkWork.href = `https://catalog.loc.gov/vwebv/search?searchArg=${encodeURIComponent(title)}&searchCode=TITLE`;
+                  locLinkWork.target = '_blank';
+                  locLinkWork.textContent = ' (LoC)';
+                  locLinkWork.className = 'text-sm text-gray-600 ml-2';
+                  li.appendChild(locLinkWork);
+                  li.appendChild(a);
+                  list.appendChild(li);
+                });
+                card.appendChild(list);
+              }
+            } catch (err) {
+              console.error('Error fetching author works', err);
+            }
+          })();
+
+          resultContainer.appendChild(card);
+  });
+
+  // update result count when not appending
+  if (!append && resultCount) resultCount.textContent = `${authors.length} author(s) found`;
+
+      } catch (err) {
+        console.error('Author search failed', err);
+        resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6"><p class="text-red-600">Author search failed.</p></div>`;
+      }
+
+  }
+
+  // TITLE SEARCH IMPLEMENTATION
+      async function performTitleSearch(query, resultDiv) {
+        const olSearchUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&fields=*,availability`;
+        try {
+          const olRes = await fetch(olSearchUrl).then(res => res.json());
+          const olMatch = olRes.docs?.[0];
+          if (!olMatch) {
+            resultDiv.innerHTML = `<p class="text-red-600">No Open Library match found.</p>`;
+            return;
+          }
+          const isbn = olMatch.isbn?.[0];
+          const coverId = olMatch.cover_i;
+          const lccn = olMatch.lccn?.[0];
+          const iaId = olMatch.ia?.[0];
+          const gutenbergId = olMatch.id_gutenberg?.[0];
+          const coverUrl = coverId
+            ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+            : isbn
+              ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+              : null;
+          const locLink = isbn
+            ? `https://catalog.loc.gov/vwebv/search?searchArg=${isbn}&searchCode=ISBN`
+            : lccn
+              ? `https://id.loc.gov/resources/bibs/${lccn}`
+              : null;
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'flex-1';
+          infoDiv.innerHTML = `
+            <div class="mb-3">
+              <h2 class="text-xl font-bold text-gray-900 mb-1">${olMatch.title || 'N/A'}</h2>
+              <p class="text-gray-700 mb-1"><strong>Author:</strong> ${olMatch.author_name?.[0] || 'N/A'}</p>
+              <p class="text-gray-700 mb-1"><strong>Published:</strong> ${olMatch.first_publish_year || 'N/A'}</p>
+            </div>
+            <div class="mb-2">
+              <h3 class="font-semibold text-gray-800">Library Links</h3>
+              <ul class="list-disc ml-5 text-blue-700">
+                <li>${locLink ? `<a href="${locLink}" target="_blank">Library of Congress</a>` : 'LoC: N/A'}</li>
+                <li><a href="https://openlibrary.org${olMatch.key}" target="_blank">Open Library</a></li>
+                <li>${iaId ? `<a href="https://archive.org/details/${iaId}" target="_blank">Internet Archive</a>` : 'Internet Archive: N/A'}</li>
+                <li>${gutenbergId ? `<a href="https://www.gutenberg.org/ebooks/${gutenbergId}" target="_blank">Project Gutenberg</a>` : 'Project Gutenberg: N/A'}</li>
+              </ul>
+            </div>
+          `;
+          const coverDiv = document.createElement('div');
+          coverDiv.className = 'flex-shrink-0';
+          coverDiv.innerHTML = coverUrl ? `<img src="${coverUrl}" alt="Book cover" class="rounded-lg w-32">` : '';
+          // replace any placeholder content with the actual info
+          resultDiv.innerHTML = '';
+          resultDiv.appendChild(coverDiv);
+          resultDiv.appendChild(infoDiv);
+
+          // Only show LoC map if we can verify holdings via LCCN
+          let status = 'unknown';
+          if (lccn) {
+            if (proxyAvailable) status = await checkLoCHoldings(lccn);
+            else status = await checkLoCHoldings(lccn);
+          } else if (isbn) {
+            status = 'unknown';
+          } else {
+            status = 'no_lccn';
+          }
+
+          const locStatusEl = document.createElement('p');
+          locStatusEl.className = 'text-sm mt-2';
+          if (status === 'found') {
+            locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Available <span class="text-green-600">●</span>`;
+            infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
+            if (locLink) {
+              const openBtn = document.createElement('button');
+              openBtn.className = 'ml-3 px-2 py-1 bg-blue-600 text-white rounded text-sm';
+              openBtn.textContent = 'Open LoC record';
+              openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
+              locStatusEl.appendChild(openBtn);
+            }
+            // show an explicit "Show map" button so the map is on-demand and anchored to this result
+            const showMapBtn = document.createElement('button');
+            showMapBtn.className = 'ml-3 px-2 py-1 bg-white border border-gray-300 text-sm rounded';
+            showMapBtn.textContent = 'Show map';
+            showMapBtn.addEventListener('click', (e) => {
+              // create a map container inside the result card
+              const wrapper = document.createElement('div');
+              const containerId = 'map-' + Date.now();
+              wrapper.className = 'map-wrapper w-full';
+              wrapper.innerHTML = `
+                <div id="${containerId}" class="book-map"></div>
+                <div class="mt-2"><button class="px-2 py-1 bg-gray-200 rounded text-sm close-map">Close map</button></div>
+              `;
+              resultDiv.appendChild(wrapper);
+              showLoCMapAt(containerId, olMatch.title || query);
+              const closeBtn = wrapper.querySelector('.close-map');
+              if (closeBtn) closeBtn.addEventListener('click', () => closeMapById(containerId));
+            });
+            locStatusEl.appendChild(showMapBtn);
+          } else if (status === 'not_found') {
+            locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Not found <span class="text-red-600">●</span>`;
+            infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
+            if (locLink) {
+              const openBtn = document.createElement('button');
+              openBtn.className = 'ml-3 px-2 py-1 bg-gray-600 text-white rounded text-sm';
+              openBtn.textContent = 'Open LoC search';
+              openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
+              locStatusEl.appendChild(openBtn);
+            }
+            // ensure no per-result maps are left open
+            // (no-op if none)
+            // closeAllMaps();
+          } else if (status === 'no_lccn') {
+            locStatusEl.innerHTML = `<strong>Library of Congress:</strong> No LCCN available`;
+            infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
+            // no map available for items without an LCCN
+            // closeAllMaps();
+          } else {
+            locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Unknown (could not verify from browser)`;
+            infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
+            if (locLink) {
+              const openBtn = document.createElement('button');
+              openBtn.className = 'ml-3 px-2 py-1 bg-yellow-600 text-white rounded text-sm';
+              openBtn.textContent = 'Open LoC search';
+              openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
+              locStatusEl.appendChild(openBtn);
+            }
+            // offer the map when LCCN exists even if verification failed
+            if (locLink && lccn) {
+              const showMapBtn = document.createElement('button');
+              showMapBtn.className = 'ml-3 px-2 py-1 bg-white border border-gray-300 text-sm rounded';
+              showMapBtn.textContent = 'Show map (best-effort)';
+              showMapBtn.addEventListener('click', () => {
+                const wrapper = document.createElement('div');
+                const containerId = 'map-' + Date.now();
+                wrapper.className = 'map-wrapper w-full';
+                wrapper.innerHTML = `<div id="${containerId}" class="book-map"></div><div class="mt-2"><button class="px-2 py-1 bg-gray-200 rounded text-sm close-map">Close map</button></div>`;
+                resultDiv.appendChild(wrapper);
+                showLoCMapAt(containerId, olMatch.title || query);
+                const closeBtn = wrapper.querySelector('.close-map');
+                if (closeBtn) closeBtn.addEventListener('click', () => closeMapById(containerId));
+              });
+              locStatusEl.appendChild(showMapBtn);
+            }
+          }
+        } catch (err) {
+          throw err;
+        }
+    }
+  </script>
+</body>
+</html>
