@@ -380,7 +380,7 @@
                         </div>
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 flex items-center gap-2">
                             <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>
-                            <span>Currently, only the <b>Library of Congress</b> has physical locations mapped. Check out on Libraries for more information.</span>
+                            <span>Currently, only the <b>Library of Congress</b> has physical locations mapped. Check out Libraries for more information.</span>
                         </div>
                         <div class="text-xs text-gray-500 mt-2">
                             <b>LoC API:</b> <a href="https://www.loc.gov/books/?fo=json" target="_blank" rel="noopener" class="underline text-blue-600">https://www.loc.gov/books/?fo=json</a><br>
@@ -955,7 +955,7 @@
                                 <div class="flex items-center space-x-4 text-sm">
                                     ${item.rating ? `<span class="text-yellow-600">⭐ ${item.rating}</span>` : ''}
                                     <span class="text-green-600">📱 ${item.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
-                                    <span class="text-blue-600">📍 ${item.libraryCount || 0} libraries</span>
+                                    ${item.libraryCount && item.libraryCount > 0 ? `<span class="text-blue-600">📍 ${item.libraryCount} libraries</span>` : ''}
                                 </div>
                                 
                                 <div class="flex items-center space-x-2 mt-2">
@@ -977,7 +977,6 @@
                             <div class="flex-1">
                                 <h3 class="text-lg font-bold text-gray-900 mb-1">${item.name}</h3>
                                 <p class="text-gray-600 mb-2">${(item.nationality ? item.nationality : '')}${(item.nationality && item.birthYear) ? ' • ' : ''}${(item.birthYear ? item.birthYear : '')}</p>
-                                <p class="text-gray-700 text-sm mb-3">${item.biography || 'No biography available'}</p>
                                 
                                 
                             </div>
@@ -1018,7 +1017,6 @@
                                     <div class="flex-1">
                                         <h3 class="text-lg font-bold text-gray-900 mb-1">${author.name}</h3>
                                         <p class="text-gray-600 mb-2">${(author.nationality ? author.nationality : '')}${(author.nationality && author.birthYear) ? ' • Born ' : (author.birthYear ? 'Born ' : '')}${(author.birthYear ? author.birthYear : '')}</p>
-                                        <p class="text-gray-700 text-sm mb-3 line-clamp-2">${author.biography || 'No biography available'}</p>
                                         
                                         
                                     </div>
@@ -1066,7 +1064,7 @@
                                         <div class="flex items-center space-x-4 text-sm">
                                             ${book.rating ? `<span class="text-yellow-600">⭐ ${book.rating}</span>` : ''}
                                             <span class="text-green-600">📱 ${book.digitalAvailable ? 'Digital Available' : 'Physical Only'}</span>
-                                            <span class="text-blue-600">📍 ${book.libraryCount || 0} libraries</span>
+                                            ${book.libraryCount && book.libraryCount > 0 ? `<span class="text-blue-600">📍 ${book.libraryCount} libraries</span>` : ''}
                                         </div>
                                         
                                         <div class="flex items-center space-x-2 mt-2">
@@ -1092,32 +1090,13 @@
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h2 class="text-3xl font-bold text-gray-900">📱 Digital Collection</h2>
-                            <p class="text-gray-600">${digitalBooks?.length || 0} digital books available</p>
                         </div>
                         <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
                             ← Back to Search
                         </button>
                     </div>
                     
-                    <!-- Digital Stats -->
-                    <div class="grid md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">${digitalBooks?.length || 0}</div>
-                            <div class="text-blue-100">Total Digital Books</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">0</div>
-                            <div class="text-green-100">Digital Exclusive</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">0</div>
-                            <div class="text-purple-100">Partner Libraries</div>
-                        </div>
-                        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white">
-                            <div class="text-3xl font-bold">0</div>
-                            <div class="text-orange-100">Total Downloads</div>
-                        </div>
-                    </div>
+                    
                     
                     <!-- Search bar for digital sources -->
                     <div class="mt-4 mb-6">
@@ -1252,7 +1231,7 @@
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h2 class="text-3xl font-bold text-gray-900">Partner Libraries</h2>
-                            <p class="text-gray-600">${libraries.length} libraries worldwide</p>
+                            <p class="text-gray-600">${libraries.length > 0 ? `${libraries.length} libraries worldwide` : ''}</p>
                         </div>
                         <button onclick="showSearchInterface()" class="text-blue-600 hover:text-blue-700 font-medium">
                             ← Back to Search
@@ -2387,7 +2366,7 @@
                     "birthYear": 1970,
                     "deathYear": null,
                     "nationality": "American",
-                    "biography": "Author biography...",
+                    "biography": "",
                     "totalBooks": 5,
                     "genres": ["Fiction", "Mystery"],
                     "awards": ["Award Name"],
