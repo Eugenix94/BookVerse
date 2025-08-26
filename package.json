@@ -1,0 +1,18 @@
+{
+  "name": "bookverse-loc-proxy",
+  "version": "1.0.0",
+  "description": "Tiny proxy to query Library of Congress records for BookVerse demo (bypasses CORS for browser)",
+  "main": "server.js",
+  "scripts": {
+  "start": "node server.js",
+  "sync:loc": "node tools/loc_sync.js",
+  "check:exclusive": "node tools/loc_exclusive_check.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7"
+  }
+}
