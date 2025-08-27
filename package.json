@@ -1,13 +1,25 @@
 {
+  "name": "bookverse-loc-proxy",
+  "version": "1.0.0",
+  "description": "BookVerse - Global Book Search & Map with LoC integration",
+  "main": "server.js",
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.12"
-  }
-  ,"devDependencies": {
+  },
+  "devDependencies": {
     "serve": "^14.2.0"
   },
   "scripts": {
-    "start": "serve . -l 8000"
-  }
+    "start": "node server.js",
+    "serve": "serve . -l 8000",
+    "sync:loc": "node tools/loc_sync.js",
+    "check:exclusive": "node tools/loc_exclusive_check.js"
+  },
+  "author": "",
+  "license": "MIT"
 }
