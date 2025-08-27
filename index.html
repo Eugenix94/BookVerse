@@ -70,6 +70,100 @@
       font-size: 2rem;
       font-weight: bold;
       border: 3px solid #e5e7eb;
+      transition: all 0.3s ease;
+    }
+    
+    .author-photo-placeholder:hover {
+      transform: scale(1.05);
+      border-color: #3b82f6;
+    }
+
+    /* Book cover styles */
+    .book-cover {
+      transition: transform 0.2s ease;
+    }
+    
+    .book-cover:hover {
+      transform: scale(1.05);
+    }
+    
+    /* Section Loading Styles */
+    .section-loading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-right: 0.5rem;
+    }
+    
+    .section-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e5e7eb;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    /* Different spinner colors for different sections */
+    .bg-green-50 .section-spinner {
+      color: #16a34a;
+    }
+    
+    .bg-blue-50 .section-spinner {
+      color: #2563eb;
+    }
+    
+    /* Skeleton loading styles */
+    .skeleton-card {
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e5e7eb;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .skeleton-line {
+      height: 1rem;
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .skeleton-line.short {
+      width: 60%;
+    }
+    
+    .skeleton-line.medium {
+      width: 80%;
+    }
+    
+    .skeleton-line:last-child {
+      margin-bottom: 0;
+    }
+    
+    .skeleton-cover {
+      width: 8rem;
+      height: 12rem;
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 0.5rem;
+      margin-right: 1.5rem;
+      flex-shrink: 0;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
     }
 
     /* Simple loading text */
@@ -129,6 +223,29 @@
     #backToTop:active {
       transform: translateY(0);
     }
+
+    /* Sticky Section Headers */
+    .sticky-section {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .sticky-section:hover {
+      background: rgba(255, 255, 255, 0.98);
+    }
+
+    /* Sticky content container */
+    .sticky-content {
+      position: relative;
+      z-index: 1;
+    }
+
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -176,7 +293,7 @@
         <p class="text-white mt-3">Loading…</p>
       </div>
     </div>
-  <div id="proxyStatus" class="mt-4 text-sm text-gray-600" aria-live="polite"></div>
+
   <div id="toast" role="status" aria-live="polite"></div>
   
   <!-- Back to Top Button -->
@@ -320,28 +437,6 @@
       return status;
     }
 
-    // Detect whether local proxy is reachable
-    let proxyAvailable = false;
-    async function detectProxy() {
-      try {
-        const res = await fetch('http://localhost:3000/status');
-        if (res.ok) { proxyAvailable = true; document.getElementById('proxyStatus').textContent = 'Proxy: running (local)'; }
-        else { proxyAvailable = false; document.getElementById('proxyStatus').innerHTML = 'Proxy: not running — <button id="retryProxy" class="underline">Retry</button>'; }
-      } catch (err) {
-        proxyAvailable = false;
-        document.getElementById('proxyStatus').innerHTML = 'Proxy: not running — <button id="retryProxy" class="underline">Retry</button> <button id="copyStart" class="ml-2 underline">Copy start command</button>';
-      }
-      const btn = document.getElementById('retryProxy');
-      if (btn) btn.addEventListener('click', () => { document.getElementById('proxyStatus').textContent = 'Checking...'; detectProxy(); });
-      const copyBtn = document.getElementById('copyStart');
-      if (copyBtn) copyBtn.addEventListener('click', () => {
-        copyToClipboard('npm install && npm start');
-        showToast('Start command copied to clipboard');
-      });
-    }
-
-    // Run detection on load
-    detectProxy();
     // Initialize persistent overview map
     try { initOverviewMap(); } catch (e) { console.error(e); }
 
@@ -354,55 +449,63 @@
       }
     }
 
-    // Helper function to get author photo URL from Open Library
-    // Helper function to create author photo element
+    // Enhanced author photo element with better image fetching
     function createAuthorPhotoElement(author) {
-      console.log('Creating photo for author:', author.name, 'Photos:', author.photos);
+      const initial = (author.name || 'A').charAt(0).toUpperCase();
+
+      // If author has photos array, use it
       if (author.photos && author.photos.length > 0) {
         const photoUrl = `https://covers.openlibrary.org/a/id/${author.photos[0]}-M.jpg`;
-        console.log('Photo URL:', photoUrl);
-        return `<img src="${photoUrl}" class="author-photo" alt="${author.name || 'Author'}" 
-                      onerror="console.log('Photo failed to load:', '${photoUrl}'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="author-photo-placeholder" style="display: none;">${(author.name || 'A').charAt(0).toUpperCase()}</div>`;
-      } else {
-        // Try to get author key and fetch photo directly as a fallback
-        if (author.key) {
-          const photoUrl = `https://covers.openlibrary.org/a/olid/${author.key.replace('/authors/', '')}-M.jpg`;
-          console.log('Fallback photo URL:', photoUrl);
-          return `<img src="${photoUrl}" class="author-photo" alt="${author.name || 'Author'}" 
-                        onerror="console.log('Fallback photo failed:', '${photoUrl}'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                  <div class="author-photo-placeholder" style="display: none;">${(author.name || 'A').charAt(0).toUpperCase()}</div>`;
-        }
-        console.log('No photos available for:', author.name);
-        return `<div class="author-photo-placeholder">${(author.name || 'A').charAt(0).toUpperCase()}</div>`;
+        return `<img src="${photoUrl}" class="author-photo" alt="${author.name || 'Author'}"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="author-photo-placeholder" style="display: none;">${initial}</div>`;
       }
+
+      // If author has an Open Library key, try to fetch photo from there
+      if (author.key) {
+        const authorId = author.key.replace('/authors/', '');
+        const photoUrl = `https://covers.openlibrary.org/a/olid/${authorId}-M.jpg`;
+        return `<img src="${photoUrl}" class="author-photo" alt="${author.name || 'Author'}"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="author-photo-placeholder" style="display: none;">${initial}</div>`;
+      }
+
+      // Try to get photo using author name (last resort before initials)
+      if (author.name) {
+        const cleanName = author.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const photoUrl = `https://covers.openlibrary.org/a/name/${cleanName}-M.jpg`;
+        return `<img src="${photoUrl}" class="author-photo" alt="${author.name || 'Author'}"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="author-photo-placeholder" style="display: none;">${initial}</div>`;
+      }
+
+      // Fallback to initials
+      return `<div class="author-photo-placeholder">${initial}</div>`;
     }
 
-    // Enrich author data with photos and additional details
+    // Function to enrich author data with additional details including photos
     async function enrichAuthorData(author) {
+      if (!author.key) return author;
+
       try {
-        if (!author.key) return author;
-        
         const authorUrl = `https://openlibrary.org${author.key}.json`;
         const response = await fetch(authorUrl);
-        if (response.ok) {
-          const details = await response.json();
-          
-          return {
-            ...author,
-            photos: details.photos || [],
-            bio: details.bio || null,
-            birth_date: details.birth_date || author.birth_date,
-            death_date: details.death_date || null,
-            alternate_names: details.alternate_names || []
-          };
-        } else {
-          console.warn(`Failed to fetch author details: ${response.status}`);
-        }
+        if (!response.ok) return author;
+
+        const authorDetails = await response.json();
+
+        // Merge additional data
+        return {
+          ...author,
+          photos: authorDetails.photos || author.photos,
+          bio: authorDetails.bio || author.bio,
+          wikipedia: authorDetails.wikipedia || author.wikipedia,
+          links: authorDetails.links || author.links
+        };
       } catch (error) {
-        console.error('Error enriching author data:', error);
+        console.warn('Failed to enrich author data:', error);
+        return author;
       }
-      return author;
     }
 
     function showToast(msg, ms = 2500) {
@@ -412,59 +515,39 @@
       setTimeout(() => { t.style.display = 'none'; }, ms);
     }
 
+    // Handle cover image loading errors with automatic fallback attempts
+    function handleCoverError(img) {
+      // Simple fallback: hide image and show placeholder
+      img.style.display = 'none';
+      if (img.nextElementSibling) {
+        img.nextElementSibling.style.display = 'flex';
+      }
+    }
+
     // Debounced search helper
     function debounce(fn, ms = 450) {
       let t;
       return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
     }
 
-    // Manage sticky header behavior - ensure only one sticky header is active at a time
-    function manageStickyHeaders(activeHeader, activeContent) {
-      // Remove sticky behavior from all other headers
-      const allStickyHeaders = document.querySelectorAll('.sticky-header');
-      const allStickyContents = document.querySelectorAll('.sticky-content');
-      
-      allStickyHeaders.forEach(header => {
-        if (header !== activeHeader) {
-          header.classList.remove('sticky-active');
-          header.classList.add('sticky-hidden');
-        }
-      });
-      
-      allStickyContents.forEach(content => {
-        if (content !== activeContent) {
-          content.classList.remove('sticky-active');
-        }
-      });
-    }
-
-    // Enhanced click handler for sticky headers
-    function createStickyToggleHandler(headerDiv, contentDiv, contentId) {
+    // Enhanced toggle handler for sticky sections
+    function createToggleHandler(headerDiv, contentId) {
       return function() {
         const content = document.getElementById(contentId);
         const button = headerDiv.querySelector('button');
-        
+
         if (content.style.display === 'none') {
-          // Expanding section
           content.style.display = '';
           button.textContent = '−';
           button.setAttribute('aria-label', 'Hide section');
-          
-          // Make this header sticky and manage others
-          headerDiv.classList.remove('sticky-hidden');
-          headerDiv.classList.add('sticky-active');
-          contentDiv.classList.add('sticky-active');
-          manageStickyHeaders(headerDiv, contentDiv);
+          // Smooth scroll to show content when expanding
+          setTimeout(() => {
+            content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
         } else {
-          // Collapsing section
           content.style.display = 'none';
           button.textContent = '+';
           button.setAttribute('aria-label', 'Show section');
-          
-          // Remove sticky behavior
-          headerDiv.classList.remove('sticky-active');
-          headerDiv.classList.add('sticky-hidden');
-          contentDiv.classList.remove('sticky-active');
         }
       };
     }
@@ -482,18 +565,34 @@
 
     // Search button event listener
     document.getElementById('searchButton').addEventListener('click', () => {
+      const searchBtn = document.getElementById('searchButton');
+      const originalText = searchBtn.textContent;
+      
+      // Show loading state
+      searchBtn.disabled = true;
+      searchBtn.innerHTML = '<div class="flex items-center gap-2"><div class="section-spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>Searching...</div>';
+      
+      // Reset button after search completes
+      setTimeout(() => {
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = originalText;
+      }, 1000); // Minimum loading time for UX
+      
       triggerSearch();
     });
 
     function showLoading() {
-      const resultContainer = document.getElementById('resultContainer');
-      if (resultContainer) {
-        resultContainer.innerHTML = '<div class="loading-text">Loading...</div>';
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
       }
     }
 
     function hideLoading() {
-      // Loading will be replaced by actual results, so no need to explicitly hide
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+      }
     }
 
     searchBar.addEventListener('change', async () => {
@@ -517,159 +616,229 @@
         
         // 1. Author Results Section
         const authorHeaderDiv = document.createElement('div');
-        authorHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+        authorHeaderDiv.className = 'sticky-section bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors';
         const authorContentId = `author-content-${Date.now()}`;
         authorHeaderDiv.innerHTML = `
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
               <h2 class="text-lg font-semibold text-green-800 mb-1">Open Library Author Results</h2>
-              <p class="text-sm text-green-600">Authors from Open Library database</p>
+              <p class="text-sm text-green-600">Authors from Open Library database <span id="author-status-${Date.now()}" class="text-xs text-gray-500"></span></p>
             </div>
-            <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+            <div class="flex items-center gap-3">
+              <div id="author-loading-${Date.now()}" class="section-loading" style="display: none;">
+                <div class="section-spinner"></div>
+                <span>Loading authors...</span>
+              </div>
+              <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Click to expand section">+</button>
+            </div>
           </div>
         `;
         
         const authorContentDiv = document.createElement('div');
         authorContentDiv.id = authorContentId;
-        authorContentDiv.className = 'author-results-content sticky-content';
+        authorContentDiv.className = 'sticky-content author-results-content';
         authorContentDiv.style.display = 'none'; // Start collapsed
         
-        // Add click handler for author toggle with sticky behavior
-        authorHeaderDiv.addEventListener('click', () => {
-          const content = document.getElementById(authorContentId);
-          const button = authorHeaderDiv.querySelector('button');
-          if (content.style.display === 'none') {
-            content.style.display = '';
-            button.textContent = '−';
-            button.setAttribute('aria-label', 'Hide section');
-            // Make header sticky when expanded
-            authorHeaderDiv.classList.remove('sticky-hidden');
-            authorHeaderDiv.classList.add('sticky-active');
-            authorContentDiv.classList.add('sticky-active');
-          } else {
-            content.style.display = 'none';
-            button.textContent = '+';
-            button.setAttribute('aria-label', 'Show section');
-            // Remove sticky behavior when collapsed
-            authorHeaderDiv.classList.remove('sticky-active');
-            authorHeaderDiv.classList.add('sticky-hidden');
-            authorContentDiv.classList.remove('sticky-active');
-          }
-        });
+        // Add click handler for author toggle
+        authorHeaderDiv.addEventListener('click', createToggleHandler(authorHeaderDiv, authorContentId));
         
         resultContainer.appendChild(authorHeaderDiv);
         resultContainer.appendChild(authorContentDiv);
         
         // 2. Open Library Title Results Section
         const olTitleHeaderDiv = document.createElement('div');
-        olTitleHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+        olTitleHeaderDiv.className = 'sticky-section bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors';
         const olTitleContentId = `ol-title-content-${Date.now()}`;
         olTitleHeaderDiv.innerHTML = `
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
               <h2 class="text-lg font-semibold text-green-800 mb-1">Open Library Title Results</h2>
-              <p class="text-sm text-green-600">Book titles from Open Library database</p>
+              <p class="text-sm text-green-600">Book titles from Open Library database <span id="ol-title-status-${Date.now()}" class="text-xs text-gray-500"></span></p>
             </div>
-            <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+            <div class="flex items-center gap-3">
+              <div id="ol-title-loading-${Date.now()}" class="section-loading" style="display: none;">
+                <div class="section-spinner"></div>
+                <span>Loading titles...</span>
+              </div>
+              <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Click to expand section">+</button>
+            </div>
           </div>
         `;
         
         const olTitleContentDiv = document.createElement('div');
         olTitleContentDiv.id = olTitleContentId;
-        olTitleContentDiv.className = 'ol-title-results-content sticky-content';
+        olTitleContentDiv.className = 'sticky-content ol-title-results-content';
         olTitleContentDiv.style.display = 'none'; // Start collapsed
         
-        // Add click handler for OL title toggle with sticky behavior
-        olTitleHeaderDiv.addEventListener('click', () => {
-          const content = document.getElementById(olTitleContentId);
-          const button = olTitleHeaderDiv.querySelector('button');
-          if (content.style.display === 'none') {
-            content.style.display = '';
-            button.textContent = '−';
-            button.setAttribute('aria-label', 'Hide section');
-            // Make header sticky when expanded
-            olTitleHeaderDiv.classList.remove('sticky-hidden');
-            olTitleHeaderDiv.classList.add('sticky-active');
-            olTitleContentDiv.classList.add('sticky-active');
-          } else {
-            content.style.display = 'none';
-            button.textContent = '+';
-            button.setAttribute('aria-label', 'Show section');
-            // Remove sticky behavior when collapsed
-            olTitleHeaderDiv.classList.remove('sticky-active');
-            olTitleHeaderDiv.classList.add('sticky-hidden');
-            olTitleContentDiv.classList.remove('sticky-active');
-          }
-        });
+        // Add click handler for OL title toggle
+        olTitleHeaderDiv.addEventListener('click', createToggleHandler(olTitleHeaderDiv, olTitleContentId));
         
         resultContainer.appendChild(olTitleHeaderDiv);
         resultContainer.appendChild(olTitleContentDiv);
         
         // 3. Library of Congress Results Section
         const locHeaderDiv = document.createElement('div');
-        locHeaderDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors sticky-header sticky-hidden';
+        locHeaderDiv.className = 'sticky-section bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors';
         const locContentId = `loc-content-${Date.now()}`;
         locHeaderDiv.innerHTML = `
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
               <h2 class="text-lg font-semibold text-blue-800 mb-1">Library of Congress Results</h2>
-              <p class="text-sm text-blue-600">Direct from the Library of Congress catalog</p>
+              <p class="text-sm text-blue-600">Direct from the Library of Congress catalog <span id="loc-status-${Date.now()}" class="text-xs text-gray-500"></span></p>
             </div>
-            <button class="text-blue-600 hover:text-blue-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+            <div class="flex items-center gap-3">
+              <div id="loc-loading-${Date.now()}" class="section-loading" style="display: none;">
+                <div class="section-spinner"></div>
+                <span>Loading LoC results...</span>
+              </div>
+              <button class="text-blue-600 hover:text-blue-800 text-xl font-bold" aria-label="Click to expand section">+</button>
+            </div>
           </div>
         `;
         
         const locContentDiv = document.createElement('div');
         locContentDiv.id = locContentId;
-        locContentDiv.className = 'loc-results-content sticky-content';
+        locContentDiv.className = 'sticky-content loc-results-content';
         locContentDiv.style.display = 'none'; // Start collapsed
         
-        // Add click handler for LoC toggle with sticky behavior
-        locHeaderDiv.addEventListener('click', () => {
-          const content = document.getElementById(locContentId);
-          const button = locHeaderDiv.querySelector('button');
-          if (content.style.display === 'none') {
-            content.style.display = '';
-            button.textContent = '−';
-            button.setAttribute('aria-label', 'Hide section');
-            // Make header sticky when expanded
-            locHeaderDiv.classList.remove('sticky-hidden');
-            locHeaderDiv.classList.add('sticky-active');
-            locContentDiv.classList.add('sticky-active');
-          } else {
-            content.style.display = 'none';
-            button.textContent = '+';
-            button.setAttribute('aria-label', 'Show section');
-            // Remove sticky behavior when collapsed
-            locHeaderDiv.classList.remove('sticky-active');
-            locHeaderDiv.classList.add('sticky-hidden');
-            locContentDiv.classList.remove('sticky-active');
-          }
-        });
+        // Add click handler for LoC toggle
+        locHeaderDiv.addEventListener('click', createToggleHandler(locHeaderDiv, locContentId));
         
         resultContainer.appendChild(locHeaderDiv);
         resultContainer.appendChild(locContentDiv);
         
         // Now run the searches with append mode and skip headers
-        try {
-          await performAuthorSearch(query, { append: true, resultDiv: authorContentDiv, skipHeader: true });
-        } catch (authorErr) {
-          console.error('Author search failed in All mode:', authorErr);
-          authorContentDiv.innerHTML = '<p class="text-red-600">Author search failed</p>';
-        }
+        // Start all searches simultaneously for better performance
+        
+        // Show loading states for each section
+        const authorLoadingId = `author-loading-${authorContentId.split('-').pop()}`;
+        const olTitleLoadingId = `ol-title-loading-${olTitleContentId.split('-').pop()}`;
+        const locLoadingId = `loc-loading-${locContentId.split('-').pop()}`;
+        
+        const authorLoading = document.getElementById(authorLoadingId);
+        const olTitleLoading = document.getElementById(olTitleLoadingId);
+        const locLoading = document.getElementById(locLoadingId);
+        
+        // Add skeleton loading to content areas
+        authorContentDiv.innerHTML = `
+          <div class="skeleton-card">
+            <div class="flex items-start">
+              <div class="skeleton-cover"></div>
+              <div class="flex-1">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="flex items-start">
+              <div class="skeleton-cover"></div>
+              <div class="flex-1">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        olTitleContentDiv.innerHTML = `
+          <div class="skeleton-card">
+            <div class="flex items-start">
+              <div class="skeleton-cover"></div>
+              <div class="flex-1">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        locContentDiv.innerHTML = `
+          <div class="skeleton-card">
+            <div class="flex items-start">
+              <div class="skeleton-cover"></div>
+              <div class="flex-1">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="flex items-start">
+              <div class="skeleton-cover"></div>
+              <div class="flex-1">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Show loading indicators
+        if (authorLoading) authorLoading.style.display = 'flex';
+        if (olTitleLoading) olTitleLoading.style.display = 'flex';
+        if (locLoading) locLoading.style.display = 'flex';
         
         try {
-          await performTitleSearch(query, olTitleContentDiv);
-        } catch (titleErr) {
-          console.error('Title search failed in All mode:', titleErr);
-          olTitleContentDiv.innerHTML = '<p class="text-red-600">Title search failed</p>';
-        }
-        
-        try {
-          await performLibraryOfCongressSearch(query, { append: true, resultDiv: locContentDiv, skipHeader: true });
-        } catch (locErr) {
-          console.error('LoC search failed in All mode:', locErr);
-          locContentDiv.innerHTML = '<p class="text-red-600">Library of Congress search failed</p>';
+          // Run author search
+          const authorPromise = performAuthorSearch(query, { append: true, resultDiv: authorContentDiv, skipHeader: true })
+            .finally(() => {
+              if (authorLoading) authorLoading.style.display = 'none';
+              // Add status indicator when loading is complete
+              const statusElement = authorHeaderDiv.querySelector('[id^="author-status-"]');
+              if (statusElement) {
+                const count = authorContentDiv.children.length;
+                statusElement.textContent = count > 0 ? `(${count} result${count === 1 ? '' : 's'} loaded - click + to view)` : '(no results found)';
+                statusElement.className = count > 0 ? 'text-xs text-green-600 font-medium' : 'text-xs text-gray-500';
+              }
+            });
+          
+          // Run title search
+          const titlePromise = performTitleSearch(query, olTitleContentDiv)
+            .finally(() => {
+              if (olTitleLoading) olTitleLoading.style.display = 'none';
+              // Add status indicator when loading is complete
+              const statusElement = olTitleHeaderDiv.querySelector('[id^="ol-title-status-"]');
+              if (statusElement) {
+                const count = olTitleContentDiv.children.length;
+                statusElement.textContent = count > 0 ? `(${count} result${count === 1 ? '' : 's'} loaded - click + to view)` : '(no results found)';
+                statusElement.className = count > 0 ? 'text-xs text-green-600 font-medium' : 'text-xs text-gray-500';
+              }
+            });
+          
+          // Run LoC search
+          const locPromise = performLibraryOfCongressSearch(query, { append: true, resultDiv: locContentDiv, skipHeader: true })
+            .finally(() => {
+              if (locLoading) locLoading.style.display = 'none';
+              // Add status indicator when loading is complete
+              const statusElement = locHeaderDiv.querySelector('[id^="loc-status-"]');
+              if (statusElement) {
+                const count = locContentDiv.children.length;
+                statusElement.textContent = count > 0 ? `(${count} result${count === 1 ? '' : 's'} loaded - click + to view)` : '(no results found)';
+                statusElement.className = count > 0 ? 'text-xs text-blue-600 font-medium' : 'text-xs text-gray-500';
+              }
+            });
+          
+          // Wait for all searches to complete
+          await Promise.allSettled([authorPromise, titlePromise, locPromise]);
+          
+          // Hide the global loading overlay after all searches complete
+          hideLoading();
+          
+        } catch (searchErr) {
+          console.error('Search error:', searchErr);
+          // Hide all loading indicators on error
+          if (authorLoading) authorLoading.style.display = 'none';
+          if (olTitleLoading) olTitleLoading.style.display = 'none';
+          if (locLoading) locLoading.style.display = 'none';
         }
         return;
       } catch (err) {
@@ -815,7 +984,7 @@
         let authorContentDiv;
         if (!append && !skipHeader) {
           const authorHeaderDiv = document.createElement('div');
-          authorHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+          authorHeaderDiv.className = 'sticky-section bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors';
           const authorContentId = `author-content-${Date.now()}`;
           authorHeaderDiv.innerHTML = `
             <div class="flex items-center justify-between">
@@ -830,31 +999,11 @@
           // Create collapsible content container for authors (initially hidden)
           authorContentDiv = document.createElement('div');
           authorContentDiv.id = authorContentId;
-          authorContentDiv.className = 'author-results-content sticky-content';
+          authorContentDiv.className = 'sticky-content author-results-content';
           authorContentDiv.style.display = 'none'; // Start collapsed
           
-          // Add click handler for toggle functionality with sticky behavior
-          authorHeaderDiv.addEventListener('click', () => {
-            const content = document.getElementById(authorContentId);
-            const button = authorHeaderDiv.querySelector('button');
-            if (content.style.display === 'none') {
-              content.style.display = '';
-              button.textContent = '−';
-              button.setAttribute('aria-label', 'Hide section');
-              // Make header sticky when expanded
-              authorHeaderDiv.classList.remove('sticky-hidden');
-              authorHeaderDiv.classList.add('sticky-active');
-              authorContentDiv.classList.add('sticky-active');
-            } else {
-              content.style.display = 'none';
-              button.textContent = '+';
-              button.setAttribute('aria-label', 'Show section');
-              // Remove sticky behavior when collapsed
-              authorHeaderDiv.classList.remove('sticky-active');
-              authorHeaderDiv.classList.add('sticky-hidden');
-              authorContentDiv.classList.remove('sticky-active');
-            }
-          });
+          // Add simple click handler for toggle
+          authorHeaderDiv.addEventListener('click', createToggleHandler(authorHeaderDiv, authorContentId));
           
           resultContainer.appendChild(authorHeaderDiv);
           resultContainer.appendChild(authorContentDiv);
@@ -863,13 +1012,14 @@
         // If using a specific result div (skipHeader mode), use that as the content container
         if (skipHeader && resultDiv) {
           authorContentDiv = resultDiv;
+          // Clear skeleton loading content before adding real results
+          authorContentDiv.innerHTML = '';
         }
         
-        // Process relevant authors in parallel to get photos
-        const enrichedAuthors = await Promise.all(
-          relevantAuthors.map(author => enrichAuthorData(author))
-        );
-        
+        // Process relevant authors with enriched data
+        const enrichedAuthorsPromises = relevantAuthors.map(author => enrichAuthorData(author));
+        const enrichedAuthors = await Promise.all(enrichedAuthorsPromises);
+
         enrichedAuthors.forEach(author => {
           const card = document.createElement('article');
           card.className = 'bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-green-400 hover:shadow-xl transition-shadow';
@@ -960,22 +1110,31 @@
                 const firstPublished = work.first_publish_date || '';
                 const subjects = work.subjects ? work.subjects.slice(0, 3).join(', ') : '';
                 
+
+                
                 workCard.innerHTML = `
                   <div class="space-y-2">
-                    <h4 class="font-medium text-gray-900 text-sm leading-tight">${title}</h4>
-                    ${firstPublished ? `<p class="text-xs text-gray-600">First published: ${firstPublished}</p>` : ''}
-                    ${subjects ? `<p class="text-xs text-gray-500">Subjects: ${subjects}</p>` : ''}
-                    <div class="flex gap-2 mt-2">
-                      <button class="search-work-btn text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-                              data-title="${title}" aria-label="Search for ${title}">
-                        🔍 Search this title
-                      </button>
-                      <a href="https://openlibrary.org${work.key}" target="_blank" 
-                         class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                         aria-label="View ${title} on Open Library">
-                        📖 Open Library
-                      </a>
-                    </div>
+                        <h4 class="font-medium text-gray-900 text-sm leading-tight line-clamp-2">${title}</h4>
+                        ${firstPublished ? `<p class="text-xs text-gray-600">📅 First published: ${firstPublished}</p>` : ''}
+                        ${subjects ? `<p class="text-xs text-gray-500">🏷️ ${subjects}</p>` : ''}
+                        <div class="flex flex-wrap gap-1 mt-2">
+                          <button class="search-work-btn text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+                                  data-title="${title}" aria-label="Search for ${title}">
+                            🔍 Search
+                          </button>
+                          <a href="https://openlibrary.org${work.key}" target="_blank" 
+                             class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors"
+                             aria-label="View ${title} on Open Library">
+                            � View
+                          </a>
+                          ${work.ia && work.ia.length > 0 ? `
+                            <a href="https://archive.org/details/${work.ia[0]}" target="_blank"
+                               class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 transition-colors"
+                               aria-label="Read ${title} on Internet Archive">
+                              📖 Read
+                            </a>
+                          ` : ''}
+                        </div>
                   </div>
                 `;
                 
@@ -1033,147 +1192,146 @@
 
     // TITLE SEARCH IMPLEMENTATION
     async function performTitleSearch(query, resultDiv) {
-      const olSearchUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&fields=*,availability`;
+      const olSearchUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&fields=*,availability&limit=10`;
       try {
         const response = await fetch(olSearchUrl);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const olRes = await response.json();
-        const olMatch = olRes.docs?.[0];
-        if (!olMatch) {
-          resultDiv.innerHTML = `<p class="text-red-600">No Open Library match found.</p>`;
+        const matches = olRes.docs || [];
+        
+        if (matches.length === 0) {
+          resultDiv.innerHTML = `<p class="text-red-600">No Open Library titles found for "${query}".</p>`;
           return;
         }
-        const isbn = olMatch.isbn?.[0];
-        const coverId = olMatch.cover_i;
-        const lccn = olMatch.lccn?.[0];
-        const iaId = olMatch.ia?.[0];
-        const gutenbergId = olMatch.id_gutenberg?.[0];
-        const coverUrl = coverId
-          ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
-          : isbn
-            ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
-            : null;
-        const locLink = isbn
-          ? `https://catalog.loc.gov/vwebv/search?searchArg=${isbn}&searchCode=ISBN`
-          : lccn
-            ? `https://id.loc.gov/resources/bibs/${lccn}`
-            : null;
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'flex-1';
-        infoDiv.innerHTML = `
-          <div class="mb-3">
-            <h2 class="text-xl font-bold text-gray-900 mb-1">${olMatch.title || 'N/A'}</h2>
-            <p class="text-gray-700 mb-1"><strong>Author:</strong> ${olMatch.author_name?.[0] || 'N/A'}</p>
-            <p class="text-gray-700 mb-1"><strong>Published:</strong> ${olMatch.first_publish_year || 'N/A'}</p>
-          </div>
-          <div class="mb-2">
-            <h3 class="font-semibold text-gray-800">Library Links</h3>
-            <ul class="list-disc ml-5 text-blue-700">
-              <li>${locLink ? `<a href="${locLink}" target="_blank">Library of Congress</a>` : 'LoC: N/A'}</li>
-              <li><a href="https://openlibrary.org${olMatch.key}" target="_blank">Open Library</a></li>
-              <li>${iaId ? `<a href="https://archive.org/details/${iaId}" target="_blank">Internet Archive</a>` : 'Internet Archive: N/A'}</li>
-              <li>${gutenbergId ? `<a href="https://www.gutenberg.org/ebooks/${gutenbergId}" target="_blank">Project Gutenberg</a>` : 'Project Gutenberg: N/A'}</li>
-            </ul>
-          </div>
-        `;
-        const coverDiv = document.createElement('div');
-        coverDiv.className = 'text-center mb-4';
-        coverDiv.innerHTML = coverUrl ? `<img src="${coverUrl}" alt="Book cover" class="rounded-lg w-32 mx-auto">` : '';
-        
-        // replace any placeholder content with the actual info
+
+        // Clear any placeholder content
         resultDiv.innerHTML = '';
-        if (coverUrl) {
-          resultDiv.appendChild(coverDiv);
-        }
-        resultDiv.appendChild(infoDiv);
 
-        // Only show LoC map if we can verify holdings via LCCN
-        let status = 'unknown';
-        if (lccn) {
-          if (proxyAvailable) status = await checkLoCHoldings(lccn);
-          else status = await checkLoCHoldings(lccn);
-        } else if (isbn) {
-          status = 'unknown';
-        } else {
-          status = 'no_lccn';
+        // Create a grid for multiple title results
+        const titlesGrid = document.createElement('div');
+        titlesGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+
+        matches.slice(0, 9).forEach((olMatch, index) => {
+          const titleCard = document.createElement('div');
+          titleCard.className = 'bg-white rounded-lg shadow-md p-4 border hover:shadow-lg transition-shadow';
+
+          const isbn = olMatch.isbn?.[0];
+          const coverId = olMatch.cover_i;
+          const lccn = olMatch.lccn?.[0];
+          const iaId = olMatch.ia?.[0];
+          const gutenbergId = olMatch.id_gutenberg?.[0];
+
+          // Enhanced cover URL generation with multiple fallbacks
+          let coverUrl = null;
+          if (coverId) {
+            coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+          } else if (isbn) {
+            coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+          } else if (lccn) {
+            coverUrl = `https://covers.openlibrary.org/b/lccn/${lccn}-M.jpg`;
+          } else if (olMatch.key) {
+            // Try using the work key
+            const workId = olMatch.key.replace('/works/', '');
+            coverUrl = `https://covers.openlibrary.org/b/olid/${workId}-M.jpg`;
+          }
+
+          // If still no cover, try title-based search
+          if (!coverUrl && olMatch.title) {
+            const cleanTitle = olMatch.title.split(':')[0].split('/')[0].trim();
+            coverUrl = `https://covers.openlibrary.org/b/title/${encodeURIComponent(cleanTitle)}-M.jpg`;
+          }
+
+          const locLink = isbn
+            ? `https://catalog.loc.gov/vwebv/search?searchArg=${isbn}&searchCode=ISBN`
+            : lccn
+              ? `https://id.loc.gov/resources/bibs/${lccn}`
+              : null;
+
+          // Create cover element with improved fallback logic
+          const coverHtml = coverUrl ? `
+            <div class="flex-shrink-0 text-center mb-3">
+              <img src="${coverUrl}" alt="Cover for ${olMatch.title || 'Unknown Title'}"
+                   class="w-24 h-36 object-cover rounded shadow-md mx-auto"
+                   onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                   onerror="handleCoverError(this);"
+                   style="display: block;">
+              <div class="w-24 h-36 bg-gradient-to-br from-gray-200 to-gray-300 rounded flex items-center justify-center text-gray-500 text-xs mx-auto border border-gray-200" style="display: none;">
+                <div class="text-center">
+                  <div class="text-lg mb-1">📖</div>
+                  <div>No Cover</div>
+                </div>
+              </div>
+            </div>
+          ` : `
+            <div class="w-24 h-36 bg-gradient-to-br from-gray-200 to-gray-300 rounded flex items-center justify-center text-gray-500 text-xs mx-auto mb-3 border border-gray-200">
+              <div class="text-center">
+                <div class="text-lg mb-1">📖</div>
+                <div>No Cover</div>
+              </div>
+            </div>
+          `;
+
+          titleCard.innerHTML = `
+            ${coverHtml}
+            <div class="space-y-2">
+              <h3 class="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
+                ${olMatch.title || 'Unknown Title'}
+              </h3>
+              <p class="text-xs text-gray-600">
+                <strong>Author:</strong> ${olMatch.author_name?.[0] || 'Unknown'}
+              </p>
+              <p class="text-xs text-gray-600">
+                <strong>Published:</strong> ${olMatch.first_publish_year || 'N/A'}
+              </p>
+              ${olMatch.subject ? `
+                <p class="text-xs text-gray-500">
+                  <strong>Genre:</strong> ${olMatch.subject.slice(0, 2).join(', ')}
+                </p>
+              ` : ''}
+              <div class="flex gap-1 mt-3">
+                <a href="https://openlibrary.org${olMatch.key}" target="_blank" 
+                   class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                  📚 Open Library
+                </a>
+                ${locLink ? `
+                  <a href="${locLink}" target="_blank" 
+                     class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors">
+                    🏛️ LoC
+                  </a>
+                ` : ''}
+                ${iaId ? `
+                  <a href="https://archive.org/details/${iaId}" target="_blank" 
+                     class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors">
+                    📖 Archive
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+          `;
+
+          titlesGrid.appendChild(titleCard);
+        });
+
+        resultDiv.appendChild(titlesGrid);
+
+        // Add "Show more" link if there are more results
+        if (matches.length > 9) {
+          const showMoreDiv = document.createElement('div');
+          showMoreDiv.className = 'mt-4 text-center';
+          showMoreDiv.innerHTML = `
+            <a href="https://openlibrary.org/search?title=${encodeURIComponent(query)}" target="_blank"
+               class="text-blue-600 hover:text-blue-800 underline text-sm">
+              View all ${matches.length} results on Open Library →
+            </a>
+          `;
+          resultDiv.appendChild(showMoreDiv);
         }
 
-        const locStatusEl = document.createElement('p');
-        locStatusEl.className = 'text-sm mt-2';
-        if (status === 'found') {
-          locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Available <span class="text-green-600">●</span>`;
-          infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
-          if (locLink) {
-            const openBtn = document.createElement('button');
-            openBtn.className = 'ml-3 px-2 py-1 bg-blue-600 text-white rounded text-sm';
-            openBtn.textContent = 'Open LoC record';
-            openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
-            locStatusEl.appendChild(openBtn);
-          }
-          // show an explicit "Show map" button so the map is on-demand and anchored to this result
-          const showMapBtn = document.createElement('button');
-          showMapBtn.className = 'ml-3 px-2 py-1 bg-white border border-gray-300 text-sm rounded';
-          showMapBtn.textContent = 'Show map';
-          showMapBtn.addEventListener('click', (e) => {
-            // create a map container inside the result card
-            const wrapper = document.createElement('div');
-            const containerId = 'map-' + Date.now();
-            wrapper.className = 'map-wrapper w-full';
-            wrapper.innerHTML = `
-              <div id="${containerId}" class="book-map"></div>
-              <div class="mt-2"><button class="px-2 py-1 bg-gray-200 rounded text-sm close-map">Close map</button></div>
-            `;
-            resultDiv.appendChild(wrapper);
-            showLoCMapAt(containerId, olMatch.title || query);
-            const closeBtn = wrapper.querySelector('.close-map');
-            if (closeBtn) closeBtn.addEventListener('click', () => closeMapById(containerId));
-          });
-          locStatusEl.appendChild(showMapBtn);
-        } else if (status === 'not_found') {
-          locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Not found <span class="text-red-600">●</span>`;
-          infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
-          if (locLink) {
-            const openBtn = document.createElement('button');
-            openBtn.className = 'ml-3 px-2 py-1 bg-gray-600 text-white rounded text-sm';
-            openBtn.textContent = 'Open Library of Congress search';
-            openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
-            locStatusEl.appendChild(openBtn);
-          }
-        } else if (status === 'no_lccn') {
-          locStatusEl.innerHTML = `<strong>Library of Congress:</strong> No LCCN available`;
-          infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
-        } else {
-          locStatusEl.innerHTML = `<strong>Library of Congress:</strong> Unknown (could not verify from browser)`;
-          infoDiv.querySelector('ul')?.parentNode?.appendChild(locStatusEl);
-          if (locLink) {
-            const openBtn = document.createElement('button');
-            openBtn.className = 'ml-3 px-2 py-1 bg-yellow-600 text-white rounded text-sm';
-            openBtn.textContent = 'Open Library of Congress search';
-            openBtn.addEventListener('click', () => window.open(locLink, '_blank'));
-            locStatusEl.appendChild(openBtn);
-          }
-          // offer the map when LCCN exists even if verification failed
-          if (locLink && lccn) {
-            const showMapBtn = document.createElement('button');
-            showMapBtn.className = 'ml-3 px-2 py-1 bg-white border border-gray-300 text-sm rounded';
-            showMapBtn.textContent = 'Show map (best-effort)';
-            showMapBtn.addEventListener('click', () => {
-              const wrapper = document.createElement('div');
-              const containerId = 'map-' + Date.now();
-              wrapper.className = 'map-wrapper w-full';
-              wrapper.innerHTML = `<div id="${containerId}" class="book-map"></div><div class="mt-2"><button class="px-2 py-1 bg-gray-200 rounded text-sm close-map">Close map</button></div>`;
-              resultDiv.appendChild(wrapper);
-              showLoCMapAt(containerId, olMatch.title || query);
-              const closeBtn = wrapper.querySelector('.close-map');
-              if (closeBtn) closeBtn.addEventListener('click', () => closeMapById(containerId));
-            });
-            locStatusEl.appendChild(showMapBtn);
-          }
-        }
       } catch (err) {
-        throw err;
+        console.error('Title search failed:', err);
+        resultDiv.innerHTML = `<p class="text-red-600">Title search failed. Please try again.</p>`;
       }
     }
 
@@ -1219,7 +1377,7 @@
           // Simple condition: create header only when not appending OR when in standalone mode
           if (!append) {
             headerDiv = document.createElement('div');
-            headerDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors sticky-header sticky-hidden';
+            headerDiv.className = 'sticky-section bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors';
             const headerTitle = titlesOnly ? 'Library of Congress Titles' : 'Library of Congress Results';
             const headerId = `loc-header-${Date.now()}`;
             const contentId = `loc-content-${Date.now()}`;
@@ -1236,30 +1394,10 @@
             // Create collapsible content container
             contentDiv = document.createElement('div');
             contentDiv.id = contentId;
-            contentDiv.className = 'loc-results-content sticky-content';
+            contentDiv.className = 'sticky-content loc-results-content';
             
-            // Add click handler for toggle functionality with sticky behavior
-            headerDiv.addEventListener('click', () => {
-              const content = document.getElementById(contentId);
-              const button = headerDiv.querySelector('button');
-              if (content.style.display === 'none') {
-                content.style.display = '';
-                button.textContent = '−';
-                button.setAttribute('aria-label', 'Hide section');
-                // Make header sticky when expanded
-                headerDiv.classList.remove('sticky-hidden');
-                headerDiv.classList.add('sticky-active');
-                contentDiv.classList.add('sticky-active');
-              } else {
-                content.style.display = 'none';
-                button.textContent = '+';
-                button.setAttribute('aria-label', 'Show section');
-                // Remove sticky behavior when collapsed
-                headerDiv.classList.remove('sticky-active');
-                headerDiv.classList.add('sticky-hidden');
-                contentDiv.classList.remove('sticky-active');
-              }
-            });
+            // Add simple click handler for toggle
+            headerDiv.addEventListener('click', createToggleHandler(headerDiv, contentId));
             
             if (resultDiv) {
               resultDiv.appendChild(headerDiv);
@@ -1274,6 +1412,8 @@
         // When skipHeader is true, use the provided resultDiv as the content container
         if (skipHeader && resultDiv) {
           contentDiv = resultDiv;
+          // Clear skeleton loading content before adding real results
+          contentDiv.innerHTML = '';
         }
         
         // Process and display LoC results
@@ -1293,29 +1433,60 @@
           const subjects = item.subject ? item.subject.slice(0, 5).join(', ') : '';
           const locUrl = item.url || '#';
           
+          // Try to get cover image from various sources
+          let coverUrl = null;
+          if (item.isbn && item.isbn.length > 0) {
+            coverUrl = `https://covers.openlibrary.org/b/isbn/${item.isbn[0]}-L.jpg`;
+          } else if (item.lccn && item.lccn.length > 0) {
+            coverUrl = `https://covers.openlibrary.org/b/lccn/${item.lccn[0]}-L.jpg`;
+          } else {
+            // Fallback: try to search Open Library by title and author
+            const searchTitle = title.split(':')[0].split('/')[0].trim(); // Clean up title
+            const searchAuthor = creators !== 'Unknown author' ? creators.split(',')[0].trim() : '';
+            if (searchTitle) {
+              coverUrl = `https://covers.openlibrary.org/b/title/${encodeURIComponent(searchTitle)}-L.jpg`;
+            }
+          }
+          
           // Debug: Log the item structure to see available fields
           console.log('LoC item structure:', item);
           
-          card.innerHTML = `
-            <div class="mb-3">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
-              <div class="text-gray-700 space-y-1">
-                <p><strong>Creator(s):</strong> ${creators}</p>
-                <p><strong>Date:</strong> ${date}</p>
-                ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}
-                ${subjects ? `<p><strong>Subjects:</strong> ${subjects}</p>` : ''}
+          const coverHtml = coverUrl ? `
+            <div class="flex-shrink-0 mr-6">
+              <img src="${coverUrl}" alt="Book cover for ${title}" 
+                   class="w-32 h-48 object-cover rounded-lg shadow-md"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <div class="w-32 h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm" style="display: none;">
+                No Cover
               </div>
             </div>
-            <div class="flex gap-2 mt-4">
-              <a href="${locUrl}" target="_blank" 
-                 class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
-                View in Library of Congress
-              </a>
-              ${item.resources && item.resources.find(r => r.pdf) ? 
-                `<a href="${item.resources.find(r => r.pdf).url}" target="_blank" 
-                   class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
-                  View PDF
-                </a>` : ''}
+          ` : '';
+          
+          card.innerHTML = `
+            <div class="flex ${coverUrl ? 'items-start' : ''}">
+              ${coverHtml}
+              <div class="flex-1">
+                <div class="mb-3">
+                  <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
+                  <div class="text-gray-700 space-y-1">
+                    <p><strong>Creator(s):</strong> ${creators}</p>
+                    <p><strong>Date:</strong> ${date}</p>
+                    ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}
+                    ${subjects ? `<p><strong>Subjects:</strong> ${subjects}</p>` : ''}
+                  </div>
+                </div>
+                <div class="flex gap-2 mt-4">
+                  <a href="${locUrl}" target="_blank" 
+                     class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                    View in Library of Congress
+                  </a>
+                  ${item.resources && item.resources.find(r => r.pdf) ? 
+                    `<a href="${item.resources.find(r => r.pdf).url}" target="_blank" 
+                       class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                      View PDF
+                    </a>` : ''}
+                </div>
+              </div>
             </div>
           `;
           
