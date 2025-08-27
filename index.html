@@ -79,34 +79,73 @@
       padding: 1rem;
       text-align: center;
     }
+
+    /* Accessibility improvements */
+    .focus\:ring-3:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+    }
+    
+    .high-contrast {
+      filter: contrast(120%);
+    }
+    
+    /* Better focus indicators */
+    button:focus,
+    a:focus,
+    select:focus,
+    input:focus {
+      outline: 3px solid #3b82f6;
+      outline-offset: 2px;
+    }
+    
+    /* Smooth animations for better UX */
+    * {
+      transition: box-shadow 0.15s ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <header class="bg-white shadow-sm border-b sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">📚 BookVerse Global Book Search</h1>
-    </div>
-  </header>
-  <main class="max-w-4xl mx-auto px-4 py-8">
-    <div class="mb-8">
-      <div class="flex gap-3 items-center">
-        <label for="searchMode" class="text-sm text-gray-700">Mode</label>
-        <select id="searchMode" class="p-2 border border-gray-300 rounded" aria-label="Search mode"> 
-          <option value="title">Title</option>
-          <option value="author">Author</option>
-          <option value="all">All</option>
-        </select>
-        <div class="relative flex-1">
-          <input id="searchBar" type="text" placeholder="Search for a book title..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Search" />
-          <button id="clearSearch" type="button" title="Clear" class="absolute right-2 top-2 bg-gray-200 p-1 rounded hidden" aria-label="Clear search">Reset</button>
-        </div>
+  <main class="max-w-4xl mx-auto px-4 py-8" role="main">
+    
+    <!-- Main Search Interface -->
+    <section class="mb-8" aria-label="Search interface">
+      <!-- Page Title -->
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">📚 BookVerse Global Book Search</h1>
+        <p class="text-gray-600">Search books and authors across multiple libraries</p>
       </div>
-      <div id="resultCount" class="text-sm text-gray-600 mt-2" aria-live="polite"></div>
+      
+      <!-- Search Controls -->
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex gap-3 items-center mb-4">
+          <label for="searchMode" class="text-sm text-gray-700">Mode</label>
+          <select id="searchMode" class="p-2 border border-gray-300 rounded" aria-label="Search mode"> 
+            <option value="title">Open Library</option>
+            <option value="all-titles">Titles</option>
+            <option value="author">Authors</option>
+            <option value="loc">Library of Congress</option>
+            <option value="all">All Sources</option>
+          </select>
+          <div class="relative flex-1">
+            <input id="searchBar" type="text" placeholder="Search for a book title..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Search" />
+            <button id="clearSearch" type="button" title="Clear" class="absolute right-2 top-2 bg-gray-200 p-1 rounded hidden" aria-label="Clear search">Reset</button>
+          </div>
+          <button id="searchButton" type="button" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium" aria-label="Search">
+            🔍 Search
+          </button>
+        </div>
+        <div id="resultCount" class="text-sm text-gray-600" aria-live="polite"></div>
+      </div>
+      
+      <section id="map" class="overview-map mb-8" aria-label="Library locations map">
+        <!-- Persistent overview map showing libraries -->
+      </section>
+      <!-- Combined Results Area -->
+      <section id="resultContainer" role="region" aria-label="Search results" aria-live="polite"></section>
+
     </div>
-    <div id="map" class="overview-map">
-      <!-- Persistent overview map showing libraries (LoC) -->
-    </div>
-    <div id="resultContainer"></div>
+    
+    <!-- Loading Overlay -->
     <div id="loadingOverlay">
       <div class="flex flex-col items-center">
         <div class="spinner"></div>
@@ -118,12 +157,14 @@
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+  // Global variables
   const resultContainer = document.getElementById('resultContainer');
   const searchBar = document.getElementById('searchBar');
   const resultCount = document.getElementById('resultCount');
   const clearSearchBtn = document.getElementById('clearSearch');
   const searchMode = document.getElementById('searchMode');
   const mapDiv = document.getElementById('map');
+  
   // persistent overview map and per-result map instances
   let overviewMap = null;
   // per-result map instances stored by container id
@@ -143,6 +184,18 @@
   function persistHoldingsCache() {
     try { localStorage.setItem('bookverse_holdingsCache', JSON.stringify(Object.fromEntries(holdingsCache))); } catch (e) {}
   }
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Library of Congress coordinates
     const locLibrary = {
@@ -353,11 +406,25 @@
     });
     clearSearchBtn.addEventListener('click', () => { searchBar.value = ''; searchBar.focus(); clearSearchBtn.classList.add('hidden'); triggerSearch(); });
 
+    // Search button event listener
+    document.getElementById('searchButton').addEventListener('click', () => {
+      triggerSearch();
+    });
+
     // Update placeholder when mode changes and persist
     searchMode.addEventListener('change', () => {
       try { localStorage.setItem('bookverse_searchMode', searchMode.value); } catch (e) {}
-      if (searchMode.value === 'author') searchBar.placeholder = 'Search for an author...';
-      else searchBar.placeholder = 'Search for a book title...';
+      if (searchMode.value === 'author') {
+        searchBar.placeholder = 'Search for an author...';
+      } else if (searchMode.value === 'all-titles') {
+        searchBar.placeholder = 'Search titles from all sources...';
+      } else if (searchMode.value === 'loc') {
+        searchBar.placeholder = 'Search Library of Congress...';
+      } else if (searchMode.value === 'all') {
+        searchBar.placeholder = 'Search all sources...';
+      } else {
+        searchBar.placeholder = 'Search for a book title...';
+      }
       searchBar.focus();
     });
 
@@ -391,17 +458,54 @@
           return;
         }
 
+        // For Library of Congress search
+        if (searchMode.value === 'loc') {
+          await performLibraryOfCongressSearch(query);
+          return;
+        }
+
         // For title mode, run title search only
         if (searchMode.value === 'title') {
           const resultDiv = document.createElement('div');
-          resultDiv.className = 'bg-white rounded-lg shadow p-6 flex gap-6 mb-6';
+          resultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
           resultContainer.innerHTML = ''; // Clear loading just before showing results
           resultContainer.appendChild(resultDiv);
           await performTitleSearch(query, resultDiv);
           return;
         }
 
-        // For 'all' mode, run both author and title searches
+        // For all-titles mode, search titles from both Open Library and Library of Congress
+        if (searchMode.value === 'all-titles') {
+          resultContainer.innerHTML = ''; // Clear loading
+
+          // Create container for Open Library results
+          const olResultDiv = document.createElement('div');
+          olResultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
+          resultContainer.appendChild(olResultDiv);
+          
+          // Create container for Library of Congress results
+          const locResultDiv = document.createElement('div');
+          locResultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
+          resultContainer.appendChild(locResultDiv);
+
+          // Search both sources for titles
+          try {
+            await performTitleSearch(query, olResultDiv);
+          } catch (olErr) {
+            console.error('Open Library title search failed:', olErr);
+            olResultDiv.innerHTML = '<p class="text-red-600">Open Library search failed</p>';
+          }
+
+          try {
+            await performLibraryOfCongressSearch(query, { resultDiv: locResultDiv, titlesOnly: true });
+          } catch (locErr) {
+            console.error('Library of Congress title search failed:', locErr);
+            locResultDiv.innerHTML = '<p class="text-red-600">Library of Congress search failed</p>';
+          }
+          return;
+        }
+
+        // For 'all' mode, run all searches
         if (searchMode.value === 'all') {
           // First run author search (it will clear loading and show results normally)
           try {
@@ -412,11 +516,22 @@
             resultContainer.innerHTML = '';
           }
           
-          // Then run title search (append to existing results)
-          const resultDiv = document.createElement('div');
-          resultDiv.className = 'bg-white rounded-lg shadow p-6 flex gap-6 mb-6';
-          resultContainer.appendChild(resultDiv);
-          await performTitleSearch(query, resultDiv);
+          // Then run Open Library title search (append to existing results)
+          const olResultDiv = document.createElement('div');
+          olResultDiv.className = 'bg-white rounded-lg shadow p-6 flex gap-6 mb-6';
+          resultContainer.appendChild(olResultDiv);
+          try {
+            await performTitleSearch(query, olResultDiv);
+          } catch (titleErr) {
+            console.error('Title search failed in All mode:', titleErr);
+          }
+          
+          // Finally run Library of Congress search (append to existing results)
+          try {
+            await performLibraryOfCongressSearch(query, { append: true });
+          } catch (locErr) {
+            console.error('LoC search failed in All mode:', locErr);
+          }
           return;
         }
       } catch (err) {
@@ -526,15 +641,23 @@
           return;
         }
 
-        // Filter and sort authors by relevance
-        const relevantAuthors = authors
+        // Filter and sort authors by relevance, and remove duplicates by name
+        const uniqueAuthors = new Map();
+        authors.forEach(author => {
+          const key = (author.name || 'Unknown').toLowerCase().trim();
+          if (!uniqueAuthors.has(key) || calculateRelevance(author.name, query) > calculateRelevance(uniqueAuthors.get(key).name, query)) {
+            uniqueAuthors.set(key, author);
+          }
+        });
+        
+        const relevantAuthors = Array.from(uniqueAuthors.values())
           .map(author => ({
             ...author,
             relevance: calculateRelevance(author.name, query)
           }))
           .filter(author => author.relevance >= 25) // Only show reasonably relevant results
           .sort((a, b) => b.relevance - a.relevance) // Sort by relevance (highest first)
-          .slice(0, 10); // Limit to top 10 results
+          .slice(0, 5); // Limit to top 5 authors for better UX
 
         if (relevantAuthors.length === 0) {
           if (!append) resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6"><p class="text-red-600">No relevant authors found for "${query}". Try a different search term.</p></div>`;
@@ -551,64 +674,144 @@
         );
         
         enrichedAuthors.forEach(author => {
-          const card = document.createElement('div');
-          card.className = 'bg-white rounded-lg shadow p-4 mb-4';
+          const card = document.createElement('article');
+          card.className = 'bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-green-400 hover:shadow-xl transition-shadow';
+          card.setAttribute('role', 'article');
+          card.setAttribute('aria-label', `Author: ${author.name || 'Unknown'}`);
+          
           const name = author.name || 'Unknown';
           const birth = author.birth_date ? ` (b. ${author.birth_date})` : '';
           const death = author.death_date ? ` - d. ${author.death_date}` : '';
-          const topWorks = author.top_work ? `<div class="text-sm text-gray-700">Top work: ${author.top_work}</div>` : '';
-          const bio = author.bio ? `<div class="text-sm text-gray-600 mt-1">${typeof author.bio === 'string' ? author.bio.substring(0, 150) + '...' : author.bio.value ? author.bio.value.substring(0, 150) + '...' : ''}</div>` : '';
+          const topWorks = author.top_work ? `<div class="text-sm text-gray-700 mb-2"><strong>Notable work:</strong> ${author.top_work}</div>` : '';
+          const bio = author.bio ? `<div class="text-sm text-gray-600 mt-2 leading-relaxed">${typeof author.bio === 'string' ? author.bio.substring(0, 200) + '...' : author.bio.value ? author.bio.value.substring(0, 200) + '...' : ''}</div>` : '';
           const authorPhoto = createAuthorPhotoElement(author);
           
           card.innerHTML = `
-            <div class="flex items-start gap-4">
-              <div class="flex-shrink-0">
+            <div class="flex items-start gap-6">
+              <div class="flex-shrink-0" role="img" aria-label="Author photo">
                 ${authorPhoto}
               </div>
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold">${name}${birth}${death}</h3>
-                ${topWorks}
-                ${bio}
-                <div class="mt-2 text-sm text-blue-700"><a href="https://openlibrary.org/authors/${author.key}" target="_blank">Open Library author page</a> • <a href="https://catalog.loc.gov/vwebv/search?searchArg=${encodeURIComponent(author.name)}&searchCode=NAME" target="_blank">Library of Congress search</a></div>
+              <div class="flex-1 min-w-0">
+                <header class="mb-3">
+                  <h2 class="text-2xl font-bold text-gray-900 mb-1">${name}${birth}${death}</h2>
+                  ${topWorks}
+                  ${bio}
+                </header>
+                <div class="mt-4">
+                  <nav class="flex flex-wrap gap-3" aria-label="Author links">
+                    <a href="https://openlibrary.org/authors/${author.key}" target="_blank" 
+                       class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                       aria-label="View ${name} on Open Library">
+                      📚 Open Library Profile
+                    </a>
+                    <a href="https://catalog.loc.gov/vwebv/search?searchArg=${encodeURIComponent(author.name)}&searchCode=NAME" target="_blank" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+                       aria-label="Search for ${name} in Library of Congress">
+                      🏛️ Library of Congress
+                    </a>
+                  </nav>
+                </div>
+                <div class="mt-4">
+                  <div class="works-container" data-author-key="${author.key}">
+                    <div class="flex items-center justify-between mb-2">
+                      <h3 class="text-lg font-semibold text-gray-800">Works by this author</h3>
+                      <div class="loading-works text-sm text-gray-500">Loading works...</div>
+                    </div>
+                    <div class="works-list"></div>
+                  </div>
+                </div>
               </div>
             </div>
           `;
 
-          // Fetch author's works and show a few clickable titles
+          // Fetch and display author's works in an improved format
+          const worksContainer = card.querySelector('.works-container');
+          const worksList = card.querySelector('.works-list');
+          const loadingWorks = card.querySelector('.loading-works');
+          
           (async () => {
             try {
-              const worksResponse = await fetch(`https://openlibrary.org/authors/${author.key}/works.json?limit=5`);
+              const worksResponse = await fetch(`https://openlibrary.org/authors/${author.key}/works.json?limit=15`);
               if (!worksResponse.ok) {
-                console.warn(`Works fetch failed: ${worksResponse.status}`);
+                loadingWorks.textContent = 'Could not load works';
+                loadingWorks.className = 'text-sm text-red-500';
                 return;
               }
+              
               const worksRes = await worksResponse.json();
               const works = worksRes.entries || [];
-              if (works.length) {
-                const list = document.createElement('ul');
-                list.className = 'mt-3 ml-4 list-disc text-sm';
-                works.slice(0,5).forEach(w => {
-                  const li = document.createElement('li');
-                  const title = w.title || 'Untitled';
-                  const a = document.createElement('a');
-                  a.href = '#';
-                  a.textContent = title;
-                  a.className = 'text-blue-600 underline';
-                  a.addEventListener('click', (e) => { e.preventDefault();
-                    // Jump to title search for this work
-                    searchMode.value = 'title';
-                    searchBar.placeholder = 'Search for a book title...';
-                    searchBar.value = title;
-                    searchBar.dispatchEvent(new Event('change'));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  });
-                  li.appendChild(a);
-                  list.appendChild(li);
-                });
-                card.appendChild(list);
+              
+              loadingWorks.style.display = 'none';
+              
+              if (works.length === 0) {
+                worksList.innerHTML = '<p class="text-gray-500 text-sm">No works found.</p>';
+                return;
               }
+              
+              // Create a grid of works
+              const worksGrid = document.createElement('div');
+              worksGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 mt-2';
+              worksGrid.setAttribute('role', 'list');
+              worksGrid.setAttribute('aria-label', `Works by ${author.name}`);
+              
+              works.slice(0, 10).forEach((work, index) => {
+                const workCard = document.createElement('div');
+                workCard.className = 'bg-gray-50 rounded-md p-3 border border-gray-200 hover:bg-gray-100 transition-colors';
+                workCard.setAttribute('role', 'listitem');
+                
+                const title = work.title || 'Untitled';
+                const firstPublished = work.first_publish_date || '';
+                const subjects = work.subjects ? work.subjects.slice(0, 3).join(', ') : '';
+                
+                workCard.innerHTML = `
+                  <div class="space-y-2">
+                    <h4 class="font-medium text-gray-900 text-sm leading-tight">${title}</h4>
+                    ${firstPublished ? `<p class="text-xs text-gray-600">First published: ${firstPublished}</p>` : ''}
+                    ${subjects ? `<p class="text-xs text-gray-500">Subjects: ${subjects}</p>` : ''}
+                    <div class="flex gap-2 mt-2">
+                      <button class="search-work-btn text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+                              data-title="${title}" aria-label="Search for ${title}">
+                        🔍 Search this title
+                      </button>
+                      <a href="https://openlibrary.org${work.key}" target="_blank" 
+                         class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
+                         aria-label="View ${title} on Open Library">
+                        📖 Open Library
+                      </a>
+                    </div>
+                  </div>
+                `;
+                
+                // Add click handler for search button
+                const searchBtn = workCard.querySelector('.search-work-btn');
+                searchBtn.addEventListener('click', () => {
+                  searchMode.value = 'title';
+                  searchBar.value = title;
+                  searchBar.placeholder = 'Search for a book title...';
+                  searchBar.dispatchEvent(new Event('change'));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+                
+                worksGrid.appendChild(workCard);
+              });
+              
+              worksList.appendChild(worksGrid);
+              
+              // Add "show more" button if there are more works
+              if (works.length > 10) {
+                const showMoreBtn = document.createElement('button');
+                showMoreBtn.className = 'mt-3 text-sm text-blue-600 hover:text-blue-800 underline';
+                showMoreBtn.textContent = `Show ${works.length - 10} more works...`;
+                showMoreBtn.addEventListener('click', () => {
+                  window.open(`https://openlibrary.org/authors/${author.key}`, '_blank');
+                });
+                worksList.appendChild(showMoreBtn);
+              }
+              
             } catch (err) {
-              console.error('Error fetching author works', err);
+              console.error('Error fetching works:', err);
+              loadingWorks.textContent = 'Error loading works';
+              loadingWorks.className = 'text-sm text-red-500';
             }
           })();
 
@@ -674,11 +877,14 @@
           </div>
         `;
         const coverDiv = document.createElement('div');
-        coverDiv.className = 'flex-shrink-0';
-        coverDiv.innerHTML = coverUrl ? `<img src="${coverUrl}" alt="Book cover" class="rounded-lg w-32">` : '';
+        coverDiv.className = 'text-center mb-4';
+        coverDiv.innerHTML = coverUrl ? `<img src="${coverUrl}" alt="Book cover" class="rounded-lg w-32 mx-auto">` : '';
+        
         // replace any placeholder content with the actual info
         resultDiv.innerHTML = '';
-        resultDiv.appendChild(coverDiv);
+        if (coverUrl) {
+          resultDiv.appendChild(coverDiv);
+        }
         resultDiv.appendChild(infoDiv);
 
         // Only show LoC map if we can verify holdings via LCCN
@@ -766,6 +972,124 @@
         }
       } catch (err) {
         throw err;
+      }
+    }
+
+    // LIBRARY OF CONGRESS SEARCH IMPLEMENTATION
+    async function performLibraryOfCongressSearch(query, opts = {}) {
+      const append = opts && opts.append === true;
+      const resultDiv = opts && opts.resultDiv;
+      const titlesOnly = opts && opts.titlesOnly === true;
+      
+      try {
+        // Use Library of Congress JSON API
+        const locSearchUrl = `https://www.loc.gov/search/?q=${encodeURIComponent(query)}&fo=json&c=150`;
+        const response = await fetch(locSearchUrl);
+        
+        if (!response.ok) {
+          throw new Error(`LoC API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const results = data.results || [];
+        
+        if (results.length === 0) {
+          if (resultDiv) {
+            resultDiv.innerHTML = `<p class="text-red-600">No Library of Congress results found for "${query}".</p>`;
+          } else if (!append) {
+            resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6">
+              <p class="text-red-600">No Library of Congress results found for "${query}".</p>
+            </div>`;
+          }
+          return;
+        }
+        
+        // If using a specific result div, work with that instead of resultContainer
+        const targetContainer = resultDiv || resultContainer;
+        
+        // Clear container only if not appending and not using a specific resultDiv
+        if (!append && !resultDiv) targetContainer.innerHTML = '';
+        
+        // Create section header for LoC results
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4';
+        const headerTitle = titlesOnly ? 'Library of Congress Titles' : 'Library of Congress Results';
+        headerDiv.innerHTML = `
+          <h2 class="text-lg font-semibold text-blue-800 mb-1">${headerTitle}</h2>
+          <p class="text-sm text-blue-600">Direct from the Library of Congress catalog</p>
+        `;
+        
+        if (resultDiv) {
+          resultDiv.appendChild(headerDiv);
+        } else {
+          targetContainer.appendChild(headerDiv);
+        }
+        
+        // Process and display LoC results
+        results.slice(0, 10).forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-blue-200';
+          
+          const title = item.title || 'No title available';
+          // Fix: LoC API uses 'contributor' field, not 'contributors'
+          const creators = item.contributor && item.contributor.length > 0 
+            ? item.contributor.slice(0, 3).join(', ') 
+            : (item.author && item.author.length > 0
+              ? item.author.slice(0, 3).join(', ')
+              : 'Unknown author');
+          const date = item.date || 'Date unknown';
+          const description = item.description ? item.description.slice(0, 200) + '...' : '';
+          const subjects = item.subject ? item.subject.slice(0, 5).join(', ') : '';
+          const locUrl = item.url || '#';
+          
+          // Debug: Log the item structure to see available fields
+          console.log('LoC item structure:', item);
+          
+          card.innerHTML = `
+            <div class="mb-3">
+              <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
+              <div class="text-gray-700 space-y-1">
+                <p><strong>Creator(s):</strong> ${creators}</p>
+                <p><strong>Date:</strong> ${date}</p>
+                ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}
+                ${subjects ? `<p><strong>Subjects:</strong> ${subjects}</p>` : ''}
+              </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+              <a href="${locUrl}" target="_blank" 
+                 class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                View in Library of Congress
+              </a>
+              ${item.resources && item.resources.find(r => r.pdf) ? 
+                `<a href="${item.resources.find(r => r.pdf).url}" target="_blank" 
+                   class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                  View PDF
+                </a>` : ''}
+            </div>
+          `;
+          
+          if (resultDiv) {
+            resultDiv.appendChild(card);
+          } else {
+            targetContainer.appendChild(card);
+          }
+        });
+        
+        // Update result count
+        const resultCount = document.getElementById('resultCount');
+        if (resultCount && !append && !resultDiv) {
+          resultCount.textContent = `${results.length} Library of Congress result(s) found`;
+        }
+        
+      } catch (err) {
+        console.error('Library of Congress search failed:', err);
+        if (resultDiv) {
+          resultDiv.innerHTML = `<p class="text-red-600">Library of Congress search failed. Please try again.</p>`;
+        } else if (!append) {
+          resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6">
+            <p class="text-red-600">Library of Congress search failed. Please try again.</p>
+          </div>`;
+        }
       }
     }
   </script>
