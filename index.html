@@ -98,9 +98,36 @@
       outline-offset: 2px;
     }
     
-    /* Smooth animations for better UX */
-    * {
-      transition: box-shadow 0.15s ease-in-out;
+    /* Back to Top Button */
+    #backToTop {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 3rem;
+      height: 3rem;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      transition: all 0.3s ease;
+      z-index: 50;
+    }
+    
+    #backToTop:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+    }
+    
+    #backToTop:active {
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -118,16 +145,8 @@
       <!-- Search Controls -->
       <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="flex gap-3 items-center mb-4">
-          <label for="searchMode" class="text-sm text-gray-700">Mode</label>
-          <select id="searchMode" class="p-2 border border-gray-300 rounded" aria-label="Search mode"> 
-            <option value="title">Open Library</option>
-            <option value="all-titles">Titles</option>
-            <option value="author">Authors</option>
-            <option value="loc">Library of Congress</option>
-            <option value="all">All Sources</option>
-          </select>
           <div class="relative flex-1">
-            <input id="searchBar" type="text" placeholder="Search for a book title..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Search" />
+            <input id="searchBar" type="text" placeholder="search title or author" class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Search" />
             <button id="clearSearch" type="button" title="Clear" class="absolute right-2 top-2 bg-gray-200 p-1 rounded hidden" aria-label="Clear search">Reset</button>
           </div>
           <button id="searchButton" type="button" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium" aria-label="Search">
@@ -135,6 +154,11 @@
           </button>
         </div>
         <div id="resultCount" class="text-sm text-gray-600" aria-live="polite"></div>
+      </div>
+      
+      <!-- Connected Libraries Section -->
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold text-gray-800 text-center">Connected Libraries</h2>
       </div>
       
       <section id="map" class="overview-map mb-8" aria-label="Library locations map">
@@ -154,6 +178,9 @@
     </div>
   <div id="proxyStatus" class="mt-4 text-sm text-gray-600" aria-live="polite"></div>
   <div id="toast" role="status" aria-live="polite"></div>
+  
+  <!-- Back to Top Button -->
+  <button id="backToTop" title="Back to Top" aria-label="Scroll back to top">↑</button>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -162,7 +189,6 @@
   const searchBar = document.getElementById('searchBar');
   const resultCount = document.getElementById('resultCount');
   const clearSearchBtn = document.getElementById('clearSearch');
-  const searchMode = document.getElementById('searchMode');
   const mapDiv = document.getElementById('map');
   
   // persistent overview map and per-result map instances
@@ -319,9 +345,6 @@
     // Initialize persistent overview map
     try { initOverviewMap(); } catch (e) { console.error(e); }
 
-  // Restore last search mode
-  try { const saved = localStorage.getItem('bookverse_searchMode'); if (saved) searchMode.value = saved; } catch (e) {}
-
     function copyToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text);
@@ -395,6 +418,57 @@
       return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
     }
 
+    // Manage sticky header behavior - ensure only one sticky header is active at a time
+    function manageStickyHeaders(activeHeader, activeContent) {
+      // Remove sticky behavior from all other headers
+      const allStickyHeaders = document.querySelectorAll('.sticky-header');
+      const allStickyContents = document.querySelectorAll('.sticky-content');
+      
+      allStickyHeaders.forEach(header => {
+        if (header !== activeHeader) {
+          header.classList.remove('sticky-active');
+          header.classList.add('sticky-hidden');
+        }
+      });
+      
+      allStickyContents.forEach(content => {
+        if (content !== activeContent) {
+          content.classList.remove('sticky-active');
+        }
+      });
+    }
+
+    // Enhanced click handler for sticky headers
+    function createStickyToggleHandler(headerDiv, contentDiv, contentId) {
+      return function() {
+        const content = document.getElementById(contentId);
+        const button = headerDiv.querySelector('button');
+        
+        if (content.style.display === 'none') {
+          // Expanding section
+          content.style.display = '';
+          button.textContent = '−';
+          button.setAttribute('aria-label', 'Hide section');
+          
+          // Make this header sticky and manage others
+          headerDiv.classList.remove('sticky-hidden');
+          headerDiv.classList.add('sticky-active');
+          contentDiv.classList.add('sticky-active');
+          manageStickyHeaders(headerDiv, contentDiv);
+        } else {
+          // Collapsing section
+          content.style.display = 'none';
+          button.textContent = '+';
+          button.setAttribute('aria-label', 'Show section');
+          
+          // Remove sticky behavior
+          headerDiv.classList.remove('sticky-active');
+          headerDiv.classList.add('sticky-hidden');
+          contentDiv.classList.remove('sticky-active');
+        }
+      };
+    }
+
     // Support Enter key to run the search immediately and use debounced change for typing
     const triggerSearch = () => searchBar.dispatchEvent(new Event('change'));
     searchBar.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerSearch(); });
@@ -409,23 +483,6 @@
     // Search button event listener
     document.getElementById('searchButton').addEventListener('click', () => {
       triggerSearch();
-    });
-
-    // Update placeholder when mode changes and persist
-    searchMode.addEventListener('change', () => {
-      try { localStorage.setItem('bookverse_searchMode', searchMode.value); } catch (e) {}
-      if (searchMode.value === 'author') {
-        searchBar.placeholder = 'Search for an author...';
-      } else if (searchMode.value === 'all-titles') {
-        searchBar.placeholder = 'Search titles from all sources...';
-      } else if (searchMode.value === 'loc') {
-        searchBar.placeholder = 'Search Library of Congress...';
-      } else if (searchMode.value === 'all') {
-        searchBar.placeholder = 'Search all sources...';
-      } else {
-        searchBar.placeholder = 'Search for a book title...';
-      }
-      searchBar.focus();
     });
 
     function showLoading() {
@@ -452,88 +509,169 @@
       showLoading();
       
       try {
-        // if author mode, use author search only
-        if (searchMode.value === 'author') {
-          await performAuthorSearch(query);
-          return;
-        }
-
-        // For Library of Congress search
-        if (searchMode.value === 'loc') {
-          await performLibraryOfCongressSearch(query);
-          return;
-        }
-
-        // For title mode, run title search only
-        if (searchMode.value === 'title') {
-          const resultDiv = document.createElement('div');
-          resultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
-          resultContainer.innerHTML = ''; // Clear loading just before showing results
-          resultContainer.appendChild(resultDiv);
-          await performTitleSearch(query, resultDiv);
-          return;
-        }
-
-        // For all-titles mode, search titles from both Open Library and Library of Congress
-        if (searchMode.value === 'all-titles') {
-          resultContainer.innerHTML = ''; // Clear loading
-
-          // Create container for Open Library results
-          const olResultDiv = document.createElement('div');
-          olResultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
-          resultContainer.appendChild(olResultDiv);
-          
-          // Create container for Library of Congress results
-          const locResultDiv = document.createElement('div');
-          locResultDiv.className = 'bg-white rounded-lg shadow p-6 mb-6';
-          resultContainer.appendChild(locResultDiv);
-
-          // Search both sources for titles
-          try {
-            await performTitleSearch(query, olResultDiv);
-          } catch (olErr) {
-            console.error('Open Library title search failed:', olErr);
-            olResultDiv.innerHTML = '<p class="text-red-600">Open Library search failed</p>';
+        // Always use 'all' mode - search all sources
+        // Clear container once at the beginning
+        resultContainer.innerHTML = '';
+        
+        // Create unified collapsible sections for all results
+        
+        // 1. Author Results Section
+        const authorHeaderDiv = document.createElement('div');
+        authorHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+        const authorContentId = `author-content-${Date.now()}`;
+        authorHeaderDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-green-800 mb-1">Open Library Author Results</h2>
+              <p class="text-sm text-green-600">Authors from Open Library database</p>
+            </div>
+            <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+          </div>
+        `;
+        
+        const authorContentDiv = document.createElement('div');
+        authorContentDiv.id = authorContentId;
+        authorContentDiv.className = 'author-results-content sticky-content';
+        authorContentDiv.style.display = 'none'; // Start collapsed
+        
+        // Add click handler for author toggle with sticky behavior
+        authorHeaderDiv.addEventListener('click', () => {
+          const content = document.getElementById(authorContentId);
+          const button = authorHeaderDiv.querySelector('button');
+          if (content.style.display === 'none') {
+            content.style.display = '';
+            button.textContent = '−';
+            button.setAttribute('aria-label', 'Hide section');
+            // Make header sticky when expanded
+            authorHeaderDiv.classList.remove('sticky-hidden');
+            authorHeaderDiv.classList.add('sticky-active');
+            authorContentDiv.classList.add('sticky-active');
+          } else {
+            content.style.display = 'none';
+            button.textContent = '+';
+            button.setAttribute('aria-label', 'Show section');
+            // Remove sticky behavior when collapsed
+            authorHeaderDiv.classList.remove('sticky-active');
+            authorHeaderDiv.classList.add('sticky-hidden');
+            authorContentDiv.classList.remove('sticky-active');
           }
-
-          try {
-            await performLibraryOfCongressSearch(query, { resultDiv: locResultDiv, titlesOnly: true });
-          } catch (locErr) {
-            console.error('Library of Congress title search failed:', locErr);
-            locResultDiv.innerHTML = '<p class="text-red-600">Library of Congress search failed</p>';
+        });
+        
+        resultContainer.appendChild(authorHeaderDiv);
+        resultContainer.appendChild(authorContentDiv);
+        
+        // 2. Open Library Title Results Section
+        const olTitleHeaderDiv = document.createElement('div');
+        olTitleHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+        const olTitleContentId = `ol-title-content-${Date.now()}`;
+        olTitleHeaderDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-green-800 mb-1">Open Library Title Results</h2>
+              <p class="text-sm text-green-600">Book titles from Open Library database</p>
+            </div>
+            <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+          </div>
+        `;
+        
+        const olTitleContentDiv = document.createElement('div');
+        olTitleContentDiv.id = olTitleContentId;
+        olTitleContentDiv.className = 'ol-title-results-content sticky-content';
+        olTitleContentDiv.style.display = 'none'; // Start collapsed
+        
+        // Add click handler for OL title toggle with sticky behavior
+        olTitleHeaderDiv.addEventListener('click', () => {
+          const content = document.getElementById(olTitleContentId);
+          const button = olTitleHeaderDiv.querySelector('button');
+          if (content.style.display === 'none') {
+            content.style.display = '';
+            button.textContent = '−';
+            button.setAttribute('aria-label', 'Hide section');
+            // Make header sticky when expanded
+            olTitleHeaderDiv.classList.remove('sticky-hidden');
+            olTitleHeaderDiv.classList.add('sticky-active');
+            olTitleContentDiv.classList.add('sticky-active');
+          } else {
+            content.style.display = 'none';
+            button.textContent = '+';
+            button.setAttribute('aria-label', 'Show section');
+            // Remove sticky behavior when collapsed
+            olTitleHeaderDiv.classList.remove('sticky-active');
+            olTitleHeaderDiv.classList.add('sticky-hidden');
+            olTitleContentDiv.classList.remove('sticky-active');
           }
-          return;
+        });
+        
+        resultContainer.appendChild(olTitleHeaderDiv);
+        resultContainer.appendChild(olTitleContentDiv);
+        
+        // 3. Library of Congress Results Section
+        const locHeaderDiv = document.createElement('div');
+        locHeaderDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors sticky-header sticky-hidden';
+        const locContentId = `loc-content-${Date.now()}`;
+        locHeaderDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-blue-800 mb-1">Library of Congress Results</h2>
+              <p class="text-sm text-blue-600">Direct from the Library of Congress catalog</p>
+            </div>
+            <button class="text-blue-600 hover:text-blue-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+          </div>
+        `;
+        
+        const locContentDiv = document.createElement('div');
+        locContentDiv.id = locContentId;
+        locContentDiv.className = 'loc-results-content sticky-content';
+        locContentDiv.style.display = 'none'; // Start collapsed
+        
+        // Add click handler for LoC toggle with sticky behavior
+        locHeaderDiv.addEventListener('click', () => {
+          const content = document.getElementById(locContentId);
+          const button = locHeaderDiv.querySelector('button');
+          if (content.style.display === 'none') {
+            content.style.display = '';
+            button.textContent = '−';
+            button.setAttribute('aria-label', 'Hide section');
+            // Make header sticky when expanded
+            locHeaderDiv.classList.remove('sticky-hidden');
+            locHeaderDiv.classList.add('sticky-active');
+            locContentDiv.classList.add('sticky-active');
+          } else {
+            content.style.display = 'none';
+            button.textContent = '+';
+            button.setAttribute('aria-label', 'Show section');
+            // Remove sticky behavior when collapsed
+            locHeaderDiv.classList.remove('sticky-active');
+            locHeaderDiv.classList.add('sticky-hidden');
+            locContentDiv.classList.remove('sticky-active');
+          }
+        });
+        
+        resultContainer.appendChild(locHeaderDiv);
+        resultContainer.appendChild(locContentDiv);
+        
+        // Now run the searches with append mode and skip headers
+        try {
+          await performAuthorSearch(query, { append: true, resultDiv: authorContentDiv, skipHeader: true });
+        } catch (authorErr) {
+          console.error('Author search failed in All mode:', authorErr);
+          authorContentDiv.innerHTML = '<p class="text-red-600">Author search failed</p>';
         }
-
-        // For 'all' mode, run all searches
-        if (searchMode.value === 'all') {
-          // First run author search (it will clear loading and show results normally)
-          try {
-            await performAuthorSearch(query);
-          } catch (authorErr) {
-            console.error('Author search failed in All mode:', authorErr);
-            // If author search fails, clear loading manually
-            resultContainer.innerHTML = '';
-          }
-          
-          // Then run Open Library title search (append to existing results)
-          const olResultDiv = document.createElement('div');
-          olResultDiv.className = 'bg-white rounded-lg shadow p-6 flex gap-6 mb-6';
-          resultContainer.appendChild(olResultDiv);
-          try {
-            await performTitleSearch(query, olResultDiv);
-          } catch (titleErr) {
-            console.error('Title search failed in All mode:', titleErr);
-          }
-          
-          // Finally run Library of Congress search (append to existing results)
-          try {
-            await performLibraryOfCongressSearch(query, { append: true });
-          } catch (locErr) {
-            console.error('LoC search failed in All mode:', locErr);
-          }
-          return;
+        
+        try {
+          await performTitleSearch(query, olTitleContentDiv);
+        } catch (titleErr) {
+          console.error('Title search failed in All mode:', titleErr);
+          olTitleContentDiv.innerHTML = '<p class="text-red-600">Title search failed</p>';
         }
+        
+        try {
+          await performLibraryOfCongressSearch(query, { append: true, resultDiv: locContentDiv, skipHeader: true });
+        } catch (locErr) {
+          console.error('LoC search failed in All mode:', locErr);
+          locContentDiv.innerHTML = '<p class="text-red-600">Library of Congress search failed</p>';
+        }
+        return;
       } catch (err) {
         console.error('Search error:', err);
         resultContainer.innerHTML = `<div class="bg-white rounded-lg shadow p-6 mb-6"><p class="text-red-600">Search error: ${err.message}</p></div>`;
@@ -627,6 +765,8 @@
     // AUTHOR SEARCH IMPLEMENTATION
     async function performAuthorSearch(query, opts = {}) {
       const append = opts && opts.append === true;
+      const resultDiv = opts && opts.resultDiv;
+      const skipHeader = opts && opts.skipHeader === true;
       // Use Open Library authors search with name field for more precise results
       const searchUrl = `https://openlibrary.org/search/authors.json?q=name:"${encodeURIComponent(query)}" OR name:${encodeURIComponent(query)}*&limit=50`;
       try {
@@ -666,7 +806,64 @@
 
         // Render author cards with enriched data
         // Clear loading when starting to show results (except when appending)
-        if (!append) resultContainer.innerHTML = '';
+        // Note: Don't clear if container is already empty (pre-cleared in All Sources mode)
+        if (!append && resultContainer.innerHTML.trim() !== '') {
+          resultContainer.innerHTML = '';
+        }
+        
+        // Add collapsible header for Open Library Author Results (only when not appending and not skipping header)
+        let authorContentDiv;
+        if (!append && !skipHeader) {
+          const authorHeaderDiv = document.createElement('div');
+          authorHeaderDiv.className = 'bg-green-50 border-l-4 border-green-400 p-4 mb-4 cursor-pointer hover:bg-green-100 transition-colors sticky-header sticky-hidden';
+          const authorContentId = `author-content-${Date.now()}`;
+          authorHeaderDiv.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-green-800 mb-1">Open Library Author Results</h2>
+                <p class="text-sm text-green-600">Authors from Open Library database</p>
+              </div>
+              <button class="text-green-600 hover:text-green-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+            </div>
+          `;
+          
+          // Create collapsible content container for authors (initially hidden)
+          authorContentDiv = document.createElement('div');
+          authorContentDiv.id = authorContentId;
+          authorContentDiv.className = 'author-results-content sticky-content';
+          authorContentDiv.style.display = 'none'; // Start collapsed
+          
+          // Add click handler for toggle functionality with sticky behavior
+          authorHeaderDiv.addEventListener('click', () => {
+            const content = document.getElementById(authorContentId);
+            const button = authorHeaderDiv.querySelector('button');
+            if (content.style.display === 'none') {
+              content.style.display = '';
+              button.textContent = '−';
+              button.setAttribute('aria-label', 'Hide section');
+              // Make header sticky when expanded
+              authorHeaderDiv.classList.remove('sticky-hidden');
+              authorHeaderDiv.classList.add('sticky-active');
+              authorContentDiv.classList.add('sticky-active');
+            } else {
+              content.style.display = 'none';
+              button.textContent = '+';
+              button.setAttribute('aria-label', 'Show section');
+              // Remove sticky behavior when collapsed
+              authorHeaderDiv.classList.remove('sticky-active');
+              authorHeaderDiv.classList.add('sticky-hidden');
+              authorContentDiv.classList.remove('sticky-active');
+            }
+          });
+          
+          resultContainer.appendChild(authorHeaderDiv);
+          resultContainer.appendChild(authorContentDiv);
+        }
+        
+        // If using a specific result div (skipHeader mode), use that as the content container
+        if (skipHeader && resultDiv) {
+          authorContentDiv = resultDiv;
+        }
         
         // Process relevant authors in parallel to get photos
         const enrichedAuthors = await Promise.all(
@@ -785,9 +982,7 @@
                 // Add click handler for search button
                 const searchBtn = workCard.querySelector('.search-work-btn');
                 searchBtn.addEventListener('click', () => {
-                  searchMode.value = 'title';
                   searchBar.value = title;
-                  searchBar.placeholder = 'Search for a book title...';
                   searchBar.dispatchEvent(new Event('change'));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
@@ -815,7 +1010,14 @@
             }
           })();
 
-          resultContainer.appendChild(card);
+          // Append to the appropriate container
+          if (skipHeader && resultDiv) {
+            resultDiv.appendChild(card);
+          } else if (!append && authorContentDiv) {
+            authorContentDiv.appendChild(card);
+          } else {
+            resultContainer.appendChild(card);
+          }
         });
 
         // update result count when not appending
@@ -980,6 +1182,7 @@
       const append = opts && opts.append === true;
       const resultDiv = opts && opts.resultDiv;
       const titlesOnly = opts && opts.titlesOnly === true;
+      const skipHeader = opts && opts.skipHeader === true;
       
       try {
         // Use Library of Congress JSON API
@@ -1010,19 +1213,67 @@
         // Clear container only if not appending and not using a specific resultDiv
         if (!append && !resultDiv) targetContainer.innerHTML = '';
         
-        // Create section header for LoC results
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4';
-        const headerTitle = titlesOnly ? 'Library of Congress Titles' : 'Library of Congress Results';
-        headerDiv.innerHTML = `
-          <h2 class="text-lg font-semibold text-blue-800 mb-1">${headerTitle}</h2>
-          <p class="text-sm text-blue-600">Direct from the Library of Congress catalog</p>
-        `;
+        // Create section header for LoC results (only when not skipping header)
+        let headerDiv, contentDiv;
+        if (!skipHeader) {
+          // Simple condition: create header only when not appending OR when in standalone mode
+          if (!append) {
+            headerDiv = document.createElement('div');
+            headerDiv.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 cursor-pointer hover:bg-blue-100 transition-colors sticky-header sticky-hidden';
+            const headerTitle = titlesOnly ? 'Library of Congress Titles' : 'Library of Congress Results';
+            const headerId = `loc-header-${Date.now()}`;
+            const contentId = `loc-content-${Date.now()}`;
+            headerDiv.innerHTML = `
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-lg font-semibold text-blue-800 mb-1">${headerTitle}</h2>
+                  <p class="text-sm text-blue-600">Direct from the Library of Congress catalog</p>
+                </div>
+                <button class="text-blue-600 hover:text-blue-800 text-xl font-bold" aria-label="Toggle visibility">+</button>
+              </div>
+            `;
+            
+            // Create collapsible content container
+            contentDiv = document.createElement('div');
+            contentDiv.id = contentId;
+            contentDiv.className = 'loc-results-content sticky-content';
+            
+            // Add click handler for toggle functionality with sticky behavior
+            headerDiv.addEventListener('click', () => {
+              const content = document.getElementById(contentId);
+              const button = headerDiv.querySelector('button');
+              if (content.style.display === 'none') {
+                content.style.display = '';
+                button.textContent = '−';
+                button.setAttribute('aria-label', 'Hide section');
+                // Make header sticky when expanded
+                headerDiv.classList.remove('sticky-hidden');
+                headerDiv.classList.add('sticky-active');
+                contentDiv.classList.add('sticky-active');
+              } else {
+                content.style.display = 'none';
+                button.textContent = '+';
+                button.setAttribute('aria-label', 'Show section');
+                // Remove sticky behavior when collapsed
+                headerDiv.classList.remove('sticky-active');
+                headerDiv.classList.add('sticky-hidden');
+                contentDiv.classList.remove('sticky-active');
+              }
+            });
+            
+            if (resultDiv) {
+              resultDiv.appendChild(headerDiv);
+              resultDiv.appendChild(contentDiv);
+            } else {
+              targetContainer.appendChild(headerDiv);
+              targetContainer.appendChild(contentDiv);
+            }
+          }
+        }
         
-        if (resultDiv) {
-          resultDiv.appendChild(headerDiv);
-        } else {
-          targetContainer.appendChild(headerDiv);
+        // When skipHeader is true, use the provided resultDiv as the content container
+        if (skipHeader && resultDiv) {
+          contentDiv = resultDiv;
         }
         
         // Process and display LoC results
@@ -1068,7 +1319,10 @@
             </div>
           `;
           
-          if (resultDiv) {
+          // Append cards to the appropriate container
+          if (contentDiv) {
+            contentDiv.appendChild(card);
+          } else if (resultDiv) {
             resultDiv.appendChild(card);
           } else {
             targetContainer.appendChild(card);
@@ -1092,6 +1346,28 @@
         }
       }
     }
+  </script>
+  
+  <script>
+    // Back to Top Button Functionality
+    const backToTopBtn = document.getElementById('backToTop');
+    
+    // Show/hide button based on scroll position
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 300) { // Show button after scrolling 300px
+        backToTopBtn.style.display = 'flex';
+      } else {
+        backToTopBtn.style.display = 'none';
+      }
+    });
+    
+    // Smooth scroll to top when button is clicked
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
   </script>
 </body>
 </html>
