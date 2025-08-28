@@ -4,12 +4,11 @@ This project is for non-commercial purposes. I'm still working on it and this is
 
 This is the Netflify deployed link of the main branch: https://bookverse01.netlify.app/ 
 
-I also made the Lite branch that's a simplified version of the main one. 
+I also made the Lite branch that's a simplified version of the main. 
 Check it out: https://bookeverselite.netlify.app/ 
 
-This project is a just an interesting experiment just made to easily seek titles through Open Library, The Internet Archive and The Library Of Congress. 
+This project is a just an interesting experiment to let users easily seek titles through Open Library, The Internet Archive and The Library Of Congress all in one saerch engine. Its capabilities are still limited.
 
-Anyway, I'll update the code when I can, but feel free to contribute, or use it to find books or explore interesting titles.
+I'll update the code when I can, but feel free to contribute, or use it to find books or explore interesting titles.
 
-Thanks for checking it out! 
-Have fun and stay educated. 
+Thanks for checking it out! Have fun and stay educated.
