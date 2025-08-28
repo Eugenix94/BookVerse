@@ -1,7 +1,9 @@
 Hi there!
 
 This is the Netflify depoyed link: https://bookverse01.netlify.app/ 
-I also made the Lite branch that's a simplified version of the main one. Check it out: https://bookeverselite.netlify.app/ 
+
+I also made the Lite branch that's a simplified version of the main one. 
+Check it out: https://bookeverselite.netlify.app/ 
 
 This project is a just an interesting experiment just made to easily seek titles through Open Library, The Internet Archive and The Library Of Congress. 
 
