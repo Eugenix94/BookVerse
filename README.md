@@ -1,6 +1,8 @@
 Hi there!
 
-This is the Netflify depoyed link: https://bookverse01.netlify.app/ 
+This project is for non-commercial purposes. I'm still working on it and this is just a little idea of the project.
+
+This is the Netflify deployed link of the main branch: https://bookverse01.netlify.app/ 
 
 I also made the Lite branch that's a simplified version of the main one. 
 Check it out: https://bookeverselite.netlify.app/ 
